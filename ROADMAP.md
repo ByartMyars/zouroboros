@@ -6,7 +6,7 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 
 ---
 
-## Phase 0: Foundation ✅ (In Progress)
+## Phase 0: Foundation ✅ (Complete)
 
 **Goal:** Establish core infrastructure that all packages depend on.
 
@@ -15,16 +15,16 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 - [x] `zouroboros-core` package with types and config
 - [x] Shared TypeScript configurations
 - [x] Build pipeline
-- [ ] Core types complete (ZoComputerConfig, MemoryConfig, SwarmConfig, etc.)
-- [ ] Configuration management (load, save, validate)
-- [ ] Constants and defaults
-- [ ] Utility functions
+- [x] Core types complete (ZoComputerConfig, MemoryConfig, SwarmConfig, etc.)
+- [x] Configuration management (load, save, validate)
+- [x] Constants and defaults
+- [x] Utility functions
 
-### Files to Create
+### Files Created
 - `packages/core/src/types.ts` - Complete type definitions
 - `packages/core/src/constants.ts` - All constants and defaults
 - `packages/core/src/config/loader.ts` - Config loading/saving
-- `packages/core/src/utils/` - Shared utilities
+- `packages/core/src/utils/index.ts` - Shared utilities
 
 ---
 

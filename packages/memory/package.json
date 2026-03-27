@@ -5,35 +5,29 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "zouroboros-memory": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist"
+    "test": "bun test",
+    "cli": "bun ./src/cli.ts"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "typescript": "^5.3.3"
+    "@types/bun": "latest",
+    "typescript": "^5.4.0"
   },
-  "files": [
-    "dist/",
-    "README.md"
-  ],
   "keywords": [
     "zouroboros",
     "memory",
-    "vector",
     "sqlite",
-    "embeddings"
+    "vector-search",
+    "embeddings",
+    "episodic-memory"
   ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/marlandoj/zouroboros.git",
-    "directory": "packages/memory"
-  }
+  "license": "MIT"
 }
