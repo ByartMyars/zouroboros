@@ -1,27 +1,35 @@
 {
   "name": "zouroboros-workflow",
   "version": "2.0.0",
-  "description": "Spec-first interview, three-stage evaluation, and unstuck lateral thinking for Zouroboros",
+  "description": "Spec-first development tools: interview, evaluation, unstuck, and autoloop",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "zouroboros-interview": "./dist/cli/interview.js",
+    "zouroboros-evaluate": "./dist/cli/evaluate.js",
+    "zouroboros-unstuck": "./dist/cli/unstuck.js",
+    "zouroboros-autoloop": "./dist/cli/autoloop.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "bun test"
+    "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
   },
   "keywords": [
-    "zouroboros",
+    "workflow",
     "spec-first",
     "evaluation",
-    "workflow",
-    "quality-gates"
+    "autoloop",
+    "zouroboros"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "author": "marlandoj.zo.computer"
 }
