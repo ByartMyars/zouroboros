@@ -28,31 +28,33 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 
 ---
 
-## Phase 1: Memory System
+## Phase 1: Memory System ✅ (Complete)
 
 **Goal:** Port `zo-memory-system` into `zouroboros-memory`.
 
 ### Deliverables
-- [ ] SQLite + Vector hybrid storage
-- [ ] Memory CLI commands (store, search, hybrid, graph)
+- [x] SQLite schema with migrations
+- [x] Database management module
+- [x] Vector embeddings (Ollama integration)
+- [x] Facts storage and retrieval
+- [x] Exact, vector, and hybrid search
+- [x] Episodic memory (events)
 - [ ] Auto-capture for conversations
 - [ ] Cognitive profiles
 - [ ] HyDE expansion
 - [ ] Graph-boosted search
 - [ ] MCP server for memory access
+- [ ] CLI commands
 
-### Source Files to Port
-From `Skills/zo-memory-system/scripts/`:
-- `memory.ts` → Core memory operations
-- `auto-capture.ts` → Conversation capture
-- `graph.ts` → Knowledge graph operations
-- `continuation.ts` → Conversation continuation
-- `eval-continuation.ts` → Quality evaluation
-- `mcp-server.ts` → MCP protocol server
+### Files Created
+- `packages/memory/src/database.ts` - SQLite schema and migrations
+- `packages/memory/src/embeddings.ts` - Ollama vector embeddings
+- `packages/memory/src/facts.ts` - Fact storage and search
+- `packages/memory/src/episodes.ts` - Event-based memory
 
 ---
 
-## Phase 2: OmniRoute Integration
+## Phase 2: OmniRoute Integration 🔄 (In Progress)
 
 **Goal:** Integrate OmniRoute tier resolver and routing.
 
@@ -218,7 +220,7 @@ docs/
 
 ## Current Status
 
-**Phase:** 0 (Foundation)
+**Phase:** 2 (OmniRoute Integration)
 **Progress:** 20%
 **Next Milestone:** Complete core types and config management
 
