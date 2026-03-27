@@ -115,29 +115,33 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 
 ---
 
-## Phase 4: Swarm Orchestrator 🔄 (In Progress)
+## Phase 4: Swarm Orchestrator ✅ (Complete)
 
 **Goal:** Port `zo-swarm-orchestrator` and `zo-swarm-executors`.
 
 ### Deliverables
-- [ ] `zouroboros-swarm` package
-- [ ] 6-signal composite routing
-- [ ] DAG streaming execution
-- [ ] Token optimization
-- [ ] Circuit breaker patterns
-- [ ] Executor bridges (Claude Code, Hermes, Gemini, Codex)
-- [ ] Registry management
+- [x] `zouroboros-swarm` package
+- [x] Circuit Breaker V2 (CLOSED/OPEN/HALF_OPEN)
+- [x] 6-signal composite routing
+- [x] DAG execution (streaming and waves)
+- [x] Executor bridge management
+- [x] Registry loader
+- [x] CLI with doctor command
+- [ ] Token optimization (Phase 8+)
+- [ ] Stagnation detection (Phase 8+)
 
-### Source Files to Port
-- `Skills/zo-swarm-orchestrator/scripts/orchestrate-v5.ts`
-- `Skills/zo-swarm-orchestrator/scripts/token-optimizer.ts`
-- `Skills/zo-swarm-orchestrator/scripts/swarm-memory.ts`
-- `Skills/zo-swarm-executors/bridges/*.sh`
-- `Skills/zo-swarm-executors/registry/executor-registry.json`
+### Files Created
+- `packages/swarm/src/circuit/breaker.ts` - Circuit breaker implementation
+- `packages/swarm/src/routing/engine.ts` - 6-signal routing
+- `packages/swarm/src/dag/executor.ts` - DAG execution
+- `packages/swarm/src/executor/bridge.ts` - Bridge execution
+- `packages/swarm/src/registry/loader.ts` - Registry management
+- `packages/swarm/src/orchestrator.ts` - Main orchestrator
+- `packages/swarm/src/cli/index.ts` - CLI
 
 ---
 
-## Phase 5: Personas & Agents
+## Phase 5: Personas & Agents 🔄 (In Progress)
 
 **Goal:** Port `zo-persona-creator` and Agency Agents integration.
 
@@ -145,15 +149,14 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 - [ ] `zouroboros-personas` package
 - [ ] 8-phase persona creation
 - [ ] Safety rules framework
-- [ ] Identity file templates (SOUL, IDENTITY, USER, HEARTBEAT)
-- [ ] Agency Agents reference integration
+- [ ] Identity file templates
+- [ ] Agency Agents reference
 - [ ] SkillsMP API client
 
 ### Source Files to Port
 - `Skills/zo-persona-creator/scripts/setup-persona.ts`
 - `Skills/zo-persona-creator/scripts/interactive-setup.ts`
 - `Skills/zo-persona-creator/assets/*`
-- Agency Agents reference files
 
 ---
 
@@ -243,9 +246,9 @@ docs/
 
 ## Current Status
 
-**Phase:** 3 (Workflow Tools) ✅ COMPLETE
-**Overall Progress:** 38% (3/8 phases)
-**Next:** Phase 4 — Swarm Orchestrator
+**Phase:** 4 (Swarm Orchestrator) ✅ COMPLETE
+**Overall Progress:** 44% (4/8 phases)
+**Next:** Phase 5 — Personas & Agents
 
 ### Completed Packages
 | Package | Status | Description |
