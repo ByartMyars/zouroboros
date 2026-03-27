@@ -1,0 +1,26 @@
+{
+  "name": "zouroboros-omniroute",
+  "version": "2.0.0",
+  "description": "OmniRoute integration and intelligent model combo selection for Zouroboros",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "zouroboros-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "zouroboros",
+    "omniroute",
+    "model-routing",
+    "ai-orchestration"
+  ],
+  "license": "MIT"
+}

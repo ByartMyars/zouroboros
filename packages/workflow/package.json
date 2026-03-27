@@ -1,0 +1,27 @@
+{
+  "name": "zouroboros-workflow",
+  "version": "2.0.0",
+  "description": "Spec-first interview, three-stage evaluation, and unstuck lateral thinking for Zouroboros",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "zouroboros-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "zouroboros",
+    "spec-first",
+    "evaluation",
+    "workflow",
+    "quality-gates"
+  ],
+  "license": "MIT"
+}

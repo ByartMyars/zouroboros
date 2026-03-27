@@ -6,42 +6,80 @@
 
 ```bash
 npm install zouroboros-core
+# or
+pnpm add zouroboros-core
 ```
 
 ## Usage
 
 ```typescript
-import { loadConfig, saveConfig, setConfigValue, DEFAULT_CONFIG } from 'zouroboros-core';
-import { ZouroborosConfig } from 'zouroboros-core';
+import { 
+  loadConfig, 
+  saveConfig, 
+  setConfigValue, 
+  DEFAULT_CONFIG,
+  ZouroborosConfig 
+} from 'zouroboros-core';
 
 // Load configuration
 const config = loadConfig();
 
-// Modify configuration
-const newConfig = setConfigValue(config, 'memory.ollamaUrl', 'http://new-host:11434');
+// Get a nested value
+const dbPath = getConfigValue<string>(config, 'memory.dbPath');
 
-// Save configuration
-saveConfig(newConfig);
+// Update configuration
+const updated = setConfigValue(config, 'memory.autoCapture', false);
+saveConfig(updated);
+
+// Initialize new configuration
+const newConfig = await initConfig({
+  workspaceRoot: '/home/workspace',
+  dataDir: '/home/user/.zouroboros'
+});
 ```
 
 ## API
 
-### `loadConfig(configPath?)`
+### Types
 
-Load configuration from file or return defaults.
+All core types are exported from this package:
 
-### `saveConfig(config, configPath?)`
+- `ZouroborosConfig` - Main configuration interface
+- `MemoryConfig`, `MemoryEntry`, `EpisodicMemory` - Memory system types
+- `SwarmConfig`, `SwarmCampaign`, `SwarmTask` - Swarm orchestration types
+- `Persona`, `SafetyRule` - Persona management types
+- `SeedSpec`, `EvaluationReport` - Workflow types
+- And more...
 
-Save configuration to file.
+### Configuration
 
-### `getConfigValue(config, key)`
+- `loadConfig(path?)` - Load configuration from file
+- `saveConfig(config, path?)` - Save configuration to file
+- `initConfig(options?)` - Initialize new configuration
+- `getConfigValue(config, path)` - Get nested config value
+- `setConfigValue(config, path, value)` - Set nested config value
+- `validateConfig(config)` - Validate configuration structure
+- `mergeConfig(partial)` - Merge partial config with defaults
 
-Get a nested config value using dot notation (e.g., `'memory.ollamaUrl'`).
+### Constants
 
-### `setConfigValue(config, key, value)`
+- `DEFAULT_CONFIG` - Default configuration object
+- `DEFAULT_CONFIG_PATH` - Default configuration file path
+- `ZOUROBOROS_VERSION` - Current version
+- `DECAY_DAYS` - Memory decay periods
+- `COMPLEXITY_THRESHOLDS` - Complexity scoring thresholds
+- And more...
 
-Set a nested config value using dot notation.
+### Utilities
 
-## Types
+- `generateUUID()` - Generate UUID v4
+- `now()` - Get current ISO timestamp
+- `retry(fn, options)` - Retry with exponential backoff
+- `formatBytes(bytes)` - Format bytes to human readable
+- `formatDuration(ms)` - Format milliseconds to duration
+- `deepMerge(target, source)` - Deep merge objects
+- And more...
 
-See `src/types.ts` for all TypeScript type definitions.
+## License
+
+MIT
