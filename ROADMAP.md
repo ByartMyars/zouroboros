@@ -79,28 +79,43 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 
 ---
 
-## Phase 3: Workflow Tools (Spec-First) 🔄 (In Progress)
+## Phase 3: Workflow Tools ✅ (Complete)
 
 **Goal:** Port Ouroboros-derived workflow tools.
 
 ### Deliverables
-- [ ] `zouroboros-workflow` package
-- [ ] Spec-first interview (Socratic questioning)
-- [ ] Seed generation with ambiguity scoring
-- [ ] Three-stage evaluation pipeline
-- [ ] Unstuck lateral thinking (5 personas)
-- [ ] Autoloop integration
+- [x] `zouroboros-workflow` package
+- [x] Spec-first interview (Socratic questioning)
+- [x] Ambiguity scoring algorithm
+- [x] Seed specification generation
+- [x] Three-stage evaluation pipeline
+  - [x] Stage 1: Mechanical verification
+  - [x] Stage 2: Semantic evaluation
+  - [x] Stage 3: Consensus (placeholder)
+- [x] Unstuck lateral thinking (5 personas)
+  - [x] Hacker strategy
+  - [x] Researcher strategy
+  - [x] Simplifier strategy
+  - [x] Architect strategy
+  - [x] Contrarian strategy
+  - [x] Auto-selection based on signals
+- [x] Autoloop optimization engine
+  - [x] Program.md parser
+  - [x] Loop state management
+  - [x] Stagnation detection
+  - [x] Experiment tracking
+- [x] CLI tools for all components
 
-### Source Files to Port
-From existing skills:
-- `Skills/spec-first-interview/scripts/interview.ts`
-- `Skills/three-stage-eval/scripts/evaluate.ts`
-- `Skills/unstuck-lateral/` → 5 persona references
-- `Skills/autoloop/scripts/autoloop.ts`
+### Files Created
+- `packages/workflow/src/interview/` - Interview and seed generation
+- `packages/workflow/src/evaluate/` - Three-stage evaluation
+- `packages/workflow/src/unstuck/` - Lateral thinking personas
+- `packages/workflow/src/autoloop/` - Optimization loop
+- `packages/workflow/src/cli/` - Command-line interfaces
 
 ---
 
-## Phase 4: Swarm Orchestrator
+## Phase 4: Swarm Orchestrator 🔄 (In Progress)
 
 **Goal:** Port `zo-swarm-orchestrator` and `zo-swarm-executors`.
 
@@ -228,9 +243,26 @@ docs/
 
 ## Current Status
 
-**Phase:** 2 (OmniRoute Integration)
-**Progress:** 20%
-**Next Milestone:** Complete core types and config management
+**Phase:** 3 (Workflow Tools) ✅ COMPLETE
+**Overall Progress:** 38% (3/8 phases)
+**Next:** Phase 4 — Swarm Orchestrator
+
+### Completed Packages
+| Package | Status | Description |
+|---------|--------|-------------|
+| zouroboros-core | ✅ | Types, config, utilities |
+| zouroboros-memory | ✅ | SQLite + vector memory |
+| zouroboros-omniroute | ✅ | Model routing |
+| zouroboros-workflow | ✅ | Interview, eval, unstuck, autoloop |
+
+### Pending Packages
+| Package | Phase | Description |
+|---------|-------|-------------|
+| zouroboros-swarm | 4 | Multi-agent orchestration |
+| zouroboros-personas | 5 | Persona creation framework |
+| zouroboros-selfheal | 6 | Introspection & evolution |
+| zouroboros-cli | 7 | Unified CLI |
+| zouroboros-tui | 7 | Terminal UI |
 
 ---
 
