@@ -1,0 +1,39 @@
+{
+  "name": "zouroboros-memory",
+  "version": "2.0.0",
+  "description": "Hybrid SQLite + Vector memory system for Zouroboros",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zouroboros-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "keywords": [
+    "zouroboros",
+    "memory",
+    "vector",
+    "sqlite",
+    "embeddings"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlandoj/zouroboros.git",
+    "directory": "packages/memory"
+  }
+}

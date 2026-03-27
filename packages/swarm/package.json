@@ -1,0 +1,40 @@
+{
+  "name": "zouroboros-swarm",
+  "version": "2.0.0",
+  "description": "Multi-agent orchestration and routing for Zouroboros",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zouroboros-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist/",
+    "bridges/",
+    "README.md"
+  ],
+  "keywords": [
+    "zouroboros",
+    "swarm",
+    "orchestration",
+    "agents",
+    "routing"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlandoj/zouroboros.git",
+    "directory": "packages/swarm"
+  }
+}

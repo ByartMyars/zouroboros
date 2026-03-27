@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  zouroboros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zouroboros
+    ports:
+      - "3000:3000"
+    volumes:
+      - zouroboros-data:/data
+      - zouroboros-config:/root/.zouroboros
+    environment:
+      - NODE_ENV=production
+      - ZOUROBOROS_CONFIG_PATH=/root/.zouroboros/config.json
+    depends_on:
+      - postgres
+      - ollama
+    networks:
+      - zouroboros-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: zouroboros-postgres
+    environment:
+      POSTGRES_USER: zouroboros
+      POSTGRES_PASSWORD: zouroboros
+      POSTGRES_DB: zouroboros
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - zouroboros-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: zouroboros-ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - zouroboros-network
+    # Pull default models on first start
+    entrypoint: >
+      sh -c '
+        ollama serve &
+        sleep 5
+        ollama pull nomic-embed-text || true
+        ollama pull qwen2.5:1.5b || true
+        wait
+      '
+
+volumes:
+  zouroboros-data:
+  zouroboros-config:
+  postgres-data:
+  ollama-data:
+
+networks:
+  zouroboros-network:
+    driver: bridge
