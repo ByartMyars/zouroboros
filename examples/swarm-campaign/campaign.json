@@ -1,0 +1,74 @@
+{
+  "$schema": "https://zouroboros.io/schemas/campaign.json",
+  "name": "Simple Website Build",
+  "description": "Build a basic website with API and UI",
+  "config": {
+    "localConcurrency": 4,
+    "timeoutSeconds": 600,
+    "routingStrategy": "balanced",
+    "dagMode": "streaming"
+  },
+  "tasks": [
+    {
+      "id": "design-api",
+      "persona": "Backend Developer",
+      "task": "Design a REST API for a todo list application. Include endpoints for: list all todos, create todo, update todo, delete todo, and mark todo as complete. Return the OpenAPI spec.",
+      "priority": "high",
+      "executor": "claude-code",
+      "timeoutSeconds": 300,
+      "expectedMutations": [
+        { "file": "api-spec.yaml", "contains": "openapi:" }
+      ]
+    },
+    {
+      "id": "implement-backend",
+      "persona": "Backend Developer",
+      "task": "Implement the API server based on the spec from the previous task. Use Node.js with Express. Include proper error handling and validation.",
+      "priority": "high",
+      "dependsOn": ["design-api"],
+      "executor": "claude-code",
+      "timeoutSeconds": 600,
+      "expectedMutations": [
+        { "file": "server.js", "contains": "express" },
+        { "file": "server.js", "contains": "app.listen" }
+      ]
+    },
+    {
+      "id": "build-frontend",
+      "persona": "Frontend Developer",
+      "task": "Create a simple HTML/CSS/JS frontend for the todo app. It should call the API endpoints and display todos in a list. Make it look clean and modern.",
+      "priority": "high",
+      "dependsOn": ["implement-backend"],
+      "executor": "claude-code",
+      "timeoutSeconds": 600,
+      "expectedMutations": [
+        { "file": "index.html", "contains": "<!DOCTYPE html>" },
+        { "file": "app.js", "contains": "fetch" }
+      ]
+    },
+    {
+      "id": "write-readme",
+      "persona": "Technical Writer",
+      "task": "Write a README.md file explaining how to run the application. Include setup instructions, API documentation, and usage examples.",
+      "priority": "medium",
+      "dependsOn": ["build-frontend"],
+      "executor": "gemini",
+      "timeoutSeconds": 300,
+      "expectedMutations": [
+        { "file": "README.md", "contains": "#" }
+      ]
+    },
+    {
+      "id": "create-dockerfile",
+      "persona": "DevOps Engineer",
+      "task": "Create a Dockerfile for containerizing the application. Include multi-stage build for optimization. The app should expose port 3000.",
+      "priority": "medium",
+      "dependsOn": ["implement-backend"],
+      "executor": "claude-code",
+      "timeoutSeconds": 300,
+      "expectedMutations": [
+        { "file": "Dockerfile", "contains": "FROM" }
+      ]
+    }
+  ]
+}

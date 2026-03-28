@@ -4,36 +4,20 @@ services:
   zouroboros:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     container_name: zouroboros
-    ports:
-      - "3000:3000"
     volumes:
-      - zouroboros-data:/data
-      - zouroboros-config:/root/.zouroboros
+      - ./workspace:/workspace
+      - zouroboros-data:/app/data
+      - zouroboros-logs:/app/logs
     environment:
+      - ZO_WORKSPACE=/workspace
       - NODE_ENV=production
-      - ZOUROBOROS_CONFIG_PATH=/root/.zouroboros/config.json
-    depends_on:
-      - postgres
-      - ollama
     networks:
       - zouroboros-network
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: zouroboros-postgres
-    environment:
-      POSTGRES_USER: zouroboros
-      POSTGRES_PASSWORD: zouroboros
-      POSTGRES_DB: zouroboros
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - zouroboros-network
-
+    restart: unless-stopped
+    
+  # Optional: Ollama for embeddings
   ollama:
     image: ollama/ollama:latest
     container_name: zouroboros-ollama
@@ -43,20 +27,27 @@ services:
       - "11434:11434"
     networks:
       - zouroboros-network
-    # Pull default models on first start
-    entrypoint: >
-      sh -c '
-        ollama serve &
-        sleep 5
-        ollama pull nomic-embed-text || true
-        ollama pull qwen2.5:1.5b || true
-        wait
-      '
+    restart: unless-stopped
+    profiles:
+      - with-ollama
+
+  # Optional: OmniRoute
+  omniroute:
+    image: marlandoj/omniroute:latest
+    container_name: zouroboros-omniroute
+    ports:
+      - "20128:20128"
+    environment:
+      - OMNIROUTE_API_KEY=${OMNIROUTE_API_KEY}
+    networks:
+      - zouroboros-network
+    restart: unless-stopped
+    profiles:
+      - with-omniroute
 
 volumes:
   zouroboros-data:
-  zouroboros-config:
-  postgres-data:
+  zouroboros-logs:
   ollama-data:
 
 networks:

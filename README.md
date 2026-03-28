@@ -3,435 +3,252 @@
 > A self-enhancing AI memory and orchestration system for Zo Computer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/marlandoj/zouroboros)
+[![Zo Computer](https://img.shields.io/badge/Zo%20Computer-compatible-green.svg)](https://zo.computer)
 
-Zouroboros brings together everything you need to supercharge your Zo Computer:
-- **Memory System** — Remember conversations, facts, and events
-- **Swarm Orchestration** — Coordinate multiple AI agents
-- **OmniRoute Integration** — Intelligent model selection
-- **Spec-First Workflow** — Plan before you build
-- **Self-Healing** — Automatically improve over time
+## Overview
 
----
+Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-install monorepo. It provides a complete toolkit for building AI-powered applications with sophisticated memory, intelligent routing, multi-agent orchestration, and self-healing capabilities.
 
-## 🚀 Quick Start (One Command)
+### Key Features
+
+🧠 **Hybrid Memory System** — SQLite + vector embeddings with episodic memory  
+🎯 **Intelligent Routing** — OmniRoute integration with complexity-aware model selection  
+🐝 **Swarm Orchestration** — Multi-agent campaigns with circuit breakers and DAG execution  
+🎭 **Persona Framework** — SOUL/IDENTITY architecture with 8-phase creation workflow  
+🔄 **Spec-First Development** — Interview, evaluate, unstuck, and autoloop tools  
+🏥 **Self-Healing** — Daily introspection, prescription, and autonomous evolution  
+💻 **Unified CLI** — Single command interface for all operations  
+📊 **Terminal Dashboard** — Real-time monitoring and control
+
+## Quick Start
+
+### One-Line Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marlandoj/zouroboros/main/scripts/install.sh | bash
 ```
 
-Or manually:
+### From Zo Chat
+
+```
+Initialize Zouroboros for me
+```
+
+### Manual Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/marlandoj/zouroboros.git
 cd zouroboros
-
-# Install dependencies
 pnpm install
-
-# Build all packages
-pnpm build
-
-# Initialize Zouroboros
-pnpm cli init
-
-# Check everything is working
-pnpm cli doctor
-```
-
----
-
-## 💬 Using Zouroboros
-
-You can use Zouroboros in two ways:
-
-### 1. Natural Language in Zo Chat
-
-Just talk to Zo naturally:
-
-```
-Remember that I prefer dark mode for all my dashboards
-```
-
-```
-Search my memory for anything about the trading bot project
-```
-
-```
-Run a swarm campaign to review my codebase
-```
-
-```
-Create a new persona called "Code Reviewer"
-```
-
-### 2. Command Line Interface (CLI)
-
-Use the terminal for precise control:
-
-```bash
-# Store a fact
-zouroboros memory store --entity "user" --key "preference" --value "dark mode"
-
-# Search memory
-zouroboros memory search "trading bot"
-
-# Run a swarm campaign
-zouroboros swarm run --campaign review.yaml
-
-# Create a persona
-zouroboros persona create --name "Code Reviewer"
-
-# Check system health
+pnpm run build
+zouroboros init
 zouroboros doctor
 ```
 
----
+## Usage
 
-## 📦 What's Included
+### Natural Language (Zo Chat)
 
-| Package | Purpose | Zo Chat | CLI |
-|---------|---------|---------|-----|
-| **zouroboros-core** | Types, config, utilities | — | — |
-| **zouroboros-memory** | SQLite + Vector memory | "Remember..." | `memory` |
-| **zouroboros-omniroute** | Model routing | automatic | `omniroute` |
-| **zouroboros-swarm** | Multi-agent orchestration | "Run swarm..." | `swarm` |
-| **zouroboros-personas** | Persona creation | "Create persona..." | `persona` |
-| **zouroboros-workflow** | Spec-first, eval, unstuck | "Run interview..." | `workflow` |
-| **zouroboros-selfheal** | Auto-improvement | background | `selfheal` |
-| **zouroboros-cli** | Unified CLI | — | `zouroboros` |
-| **zouroboros-tui** | Terminal UI | — | `zouroboros-tui` |
-
----
-
-## 🧠 Memory System Examples
-
-### Store a Memory
-
-**Zo Chat:**
 ```
-Remember that my database password is in /home/.z/secrets
+Store in memory that I prefer TypeScript for backend development
 ```
 
-**CLI:**
-```bash
-zouroboros memory store \
-  --entity "user" \
-  --key "db_password_location" \
-  --value "/home/.z/secrets" \
-  --category "reference" \
-  --decay permanent
+```
+What do you know about my technology preferences?
 ```
 
-### Search Memories
-
-**Zo Chat:**
 ```
-What do I remember about database passwords?
+Run a spec-first interview for building a REST API
 ```
 
-**CLI:**
-```bash
-zouroboros memory search "database password"
-zouroboros memory hybrid "database password"  # Hybrid search
+```
+Route this task to the optimal model: Debug authentication errors
 ```
 
-### Record an Event
-
-**Zo Chat:**
 ```
-Record that I finished the trading bot integration today
+Check my Zouroboros system health
 ```
 
-**CLI:**
-```bash
-zouroboros memory episode \
-  --summary "Finished trading bot integration" \
-  --outcome success \
-  --entities "trading-bot" "alpaca"
-```
-
----
-
-## 🐝 Swarm Orchestration Examples
-
-### Run a Campaign
-
-**Zo Chat:**
-```
-Run a swarm campaign to analyze my codebase for security issues
-```
-
-**CLI:**
-```bash
-zouroboros swarm run --file security-audit.yaml
-```
-
-Example campaign file (`security-audit.yaml`):
-```yaml
-name: Security Audit
-tasks:
-  - name: Check for secrets
-    prompt: Search for API keys, passwords, or tokens in the codebase
-    executor: local
-    combo: swarm-light
-  
-  - name: Analyze dependencies
-    prompt: Check package.json for known vulnerabilities
-    executor: local
-    combo: swarm-light
-    depends_on: [Check for secrets]
-```
-
-### Check Campaign Status
-
-**Zo Chat:**
-```
-What's the status of my security audit campaign?
-```
-
-**CLI:**
-```bash
-zouroboros swarm status
-```
-
----
-
-## 👤 Persona Examples
-
-### Create a Persona
-
-**Zo Chat:**
-```
-Create a persona called "Security Expert" that reviews code for vulnerabilities
-```
-
-**CLI:**
-```bash
-zouroboros persona create \
-  --name "Security Expert" \
-  --domain "security" \
-  --description "Reviews code for security vulnerabilities"
-```
-
-### List Personas
-
-**Zo Chat:**
-```
-What personas do I have?
-```
-
-**CLI:**
-```bash
-zouroboros persona list
-```
-
-### Activate a Persona
-
-**Zo Chat:**
-```
-Switch to the Security Expert persona
-```
-
-**CLI:**
-```bash
-zouroboros persona activate "Security Expert"
-```
-
----
-
-## 🔍 Workflow Examples
-
-### Spec-First Interview
-
-**Zo Chat:**
-```
-I want to build a webhook retry system. Run a spec-first interview first.
-```
-
-**CLI:**
-```bash
-zouroboros workflow interview \
-  --topic "Build a webhook retry system" \
-  --output seed.yaml
-```
-
-### Three-Stage Evaluation
-
-**Zo Chat:**
-```
-Evaluate my implementation against the seed specification
-```
-
-**CLI:**
-```bash
-zouroboros workflow evaluate \
-  --seed seed.yaml \
-  --artifact ./src
-```
-
-### Get Unstuck
-
-**Zo Chat:**
-```
-I'm stuck on this error. Help me get unstuck.
-```
-
-**CLI:**
-```bash
-zouroboros workflow unstuck \
-  --problem "Database connection keeps failing" \
-  --persona hacker
-```
-
----
-
-## 🏥 Self-Heal Examples
-
-### Run Introspection
-
-**Zo Chat:**
-```
-Run a health check on my Zouroboros system
-```
-
-**CLI:**
-```bash
-zouroboros selfheal introspect
-```
-
-### Generate Prescription
-
-**Zo Chat:**
-```
-What should I improve based on my health score?
-```
-
-**CLI:**
-```bash
-zouroboros selfheal prescribe
-```
-
----
-
-## 🖥️ Terminal UI
-
-Launch the interactive terminal UI:
+### CLI
 
 ```bash
-zouroboros-tui
+# Memory operations
+zouroboros memory store --entity user --key preference --value "dark mode"
+zouroboros memory search "technology preferences"
+
+# OmniRoute routing
+zouroboros omniroute resolve "Build a React component"
+
+# Workflow tools
+zouroboros workflow interview --topic "Design a database schema"
+zouroboros workflow evaluate --seed seed.yaml --artifact ./src
+zouroboros workflow unstuck --signal "same error keeps happening"
+
+# Swarm campaigns
+zouroboros swarm run --tasks campaign.json
+
+# Persona creation
+zouroboros persona create --name "Security Auditor" --domain security
+
+# Self-healing
+zouroboros heal introspect
+zouroboros heal prescribe
+zouroboros heal evolve
+
+# Terminal dashboard
+zouroboros tui
 ```
 
-Navigate with arrow keys:
-- **Memory** — View stats, search, browse episodes
-- **Swarm** — Monitor campaigns, view results
-- **Config** — Edit settings interactively
-- **Doctor** — Run health checks
+### Programmatic (TypeScript)
 
----
+```typescript
+import { Memory } from 'zouroboros-memory';
+import { OmniRouteResolver } from 'zouroboros-omniroute';
+import { SwarmOrchestrator } from 'zouroboros-swarm';
 
-## ⚙️ Configuration
+// Initialize memory
+const memory = new Memory({ dbPath: './memory.db' });
 
-Configuration is stored in `~/.config/zouroboros/config.json`.
+// Store a fact
+await memory.store({
+  entity: 'user',
+  key: 'preference',
+  value: 'TypeScript',
+  category: 'preference',
+  decayClass: 'permanent',
+});
 
-### View Configuration
+// Search memory
+const results = await memory.search({ query: 'programming languages' });
 
-**Zo Chat:**
+// Resolve optimal model for a task
+const resolver = new OmniRouteResolver();
+const combo = await resolver.resolve('Build a REST API');
+console.log(`Use combo: ${combo.resolvedCombo}`);
+
+// Run a swarm campaign
+const orchestrator = new SwarmOrchestrator();
+const results = await orchestrator.run({
+  tasks: [
+    { id: '1', persona: 'Backend Developer', task: 'Design API' },
+    { id: '2', persona: 'Frontend Developer', task: 'Build UI', dependsOn: ['1'] },
+  ],
+});
 ```
-Show me my Zouroboros configuration
-```
 
-**CLI:**
-```bash
-zouroboros config get
-zouroboros config get memory.autoCapture
-```
+## Packages
 
-### Update Configuration
+| Package | Description | CLI Command |
+|---------|-------------|-------------|
+| `zouroboros-core` | Types, config, utilities | - |
+| `zouroboros-memory` | Hybrid SQLite + vector memory | `zouroboros-memory` |
+| `zouroboros-omniroute` | Model routing & complexity analysis | `zouroboros-omniroute` |
+| `zouroboros-workflow` | Interview, eval, unstuck, autoloop | `zouroboros-*` |
+| `zouroboros-personas` | Persona creation framework | `zouroboros-personas` |
+| `zouroboros-swarm` | Multi-agent orchestration | `zouroboros-swarm` |
+| `zouroboros-selfheal` | Introspection & evolution | `zouroboros-introspect` |
+| `zouroboros-cli` | Unified CLI | `zouroboros` |
+| `zouroboros-tui` | Terminal dashboard | `zouroboros-tui` |
 
-**Zo Chat:**
-```
-Enable auto-capture for my conversations
-```
-
-**CLI:**
-```bash
-zouroboros config set memory.autoCapture true
-zouroboros config set memory.captureIntervalMinutes 15
-```
-
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Zouroboros CLI                         │
+│                        Zouroboros CLI                        │
+│                   (zouroboros command)                       │
 └─────────────────────────────────────────────────────────────┘
                               │
         ┌─────────────────────┼─────────────────────┐
         ▼                     ▼                     ▼
-┌───────────────┐    ┌───────────────┐    ┌───────────────┐
-│    Memory     │    │    Swarm      │    │   Workflow    │
-│   System      │    │ Orchestrator  │    │    Tools      │
-└───────────────┘    └───────────────┘    └───────────────┘
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│    Memory    │    │    Swarm     │    │   Workflow   │
+│   System     │◄──►│ Orchestrator │◄──►│    Tools     │
+└──────────────┘    └──────────────┘    └──────────────┘
         │                     │                     │
         ▼                     ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                       Core Services                         │
-│  (Config, Types, OmniRoute, Personas, Self-Heal)           │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  OmniRoute   │    │   Personas   │    │  Self-Heal   │
+│   Resolver   │    │  Framework   │    │   System     │
+└──────────────┘    └──────────────┘    └──────────────┘
 ```
 
----
+## Documentation
 
-## 📚 Documentation
+- **[Installation Guide](./docs/getting-started/installation.md)** — Get started in minutes
+- **[Quick Start](./docs/getting-started/quickstart.md)** — Build your first project
+- **[Architecture Overview](./docs/architecture/overview.md)** — System design
+- **[CLI Reference](./docs/reference/cli-commands.md)** — Complete command reference
+- **[API Documentation](./docs/reference/api.md)** — Programmatic usage
 
-- [Installation Guide](docs/getting-started/installation.md)
-- [Quick Start Tutorial](docs/getting-started/quickstart.md)
-- [Architecture Overview](docs/architecture/overview.md)
-- [CLI Reference](docs/reference/cli-commands.md)
-- [API Documentation](docs/reference/api.md)
+## Examples
 
----
+See the `examples/` directory for complete projects:
 
-## 🤝 Contributing
+- `basic-memory/` — Memory system fundamentals
+- `swarm-campaign/` — Multi-agent orchestration
+- `persona-creation/` — Building custom personas
+- `self-healing/` — Autonomous improvement
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+## Configuration
 
----
+Zouroboros uses a hierarchical configuration system:
 
-## 📄 License
+```yaml
+# ~/.zouroboros/config.yaml
+defaults:
+  memory:
+    dbPath: ~/.zo/memory/shared-facts.db
+    embeddingModel: nomic-embed-text
+  
+  omniroute:
+    url: http://localhost:20128
+    apiKey: ${OMNIROUTE_API_KEY}
+  
+  swarm:
+    localConcurrency: 8
+    timeoutSeconds: 600
+    routingStrategy: balanced
+```
 
-MIT License - see [LICENSE](LICENSE) for details.
+## Self-Healing
 
----
+Zouroboros can monitor and improve itself:
 
-## 🙏 Acknowledgments
+```bash
+# Run daily introspection
+zouroboros heal introspect --store
 
-- [OmniRoute](https://github.com/zenphi/OmniRoute) for model routing
-- [Ouroboros](https://github.com/Q00/ouroboros) for spec-first patterns
-- [Agency Agents](https://github.com/msitarzewski/agency-agents) for persona templates
-- [karpathy/autoresearch](https://github.com/karpathy/autoresearch) for autoloop inspiration
+# Generate improvement prescription
+zouroboros heal prescribe --live
 
-### Packages
+# Execute improvement
+zouroboros heal evolve --prescription ./prescription.json
+```
 
-| Package | Description | Status |
-|---------|-------------|--------|
-| `zouroboros-core` | Core types, config, utilities | ✅ Complete |
-| `zouroboros-memory` | SQLite + Vector memory system | ✅ Complete |
-| `zouroboros-omniroute` | Intelligent model combo selection | ✅ Complete |
-| `zouroboros-swarm` | Multi-agent orchestration | 🔄 Planned |
-| `zouroboros-personas` | Persona creation framework | 🔄 Planned |
-| `zouroboros-selfheal` | Introspect, prescribe, evolve | 🔄 Planned |
-| `zouroboros-workflow` | Spec-first development tools | 🔄 Planned |
-| `zouroboros-agents` | Agency Agents integration | 🔄 Planned |
+The system measures:
+- Memory recall quality
+- Graph connectivity
+- Routing accuracy
+- Evaluation calibration
+- Procedure freshness
+- Episode velocity
 
----
+## Integration with Zo Computer
 
-## Quick Start
+Zouroboros is designed to work seamlessly with Zo Computer:
 
-### 1. Installation
+```typescript
+// In Zo chat, you can use natural language:
+"Store that I prefer dark mode interfaces"
+"What's my favorite programming language?"
+"Run a spec-first interview for a new feature"
+"Check my Zouroboros health"
+```
+
+The CLI and Zo chat interface are fully compatible — use whichever is more convenient.
+
+## Development
 
 ```bash
 # Clone the repository
@@ -444,82 +261,27 @@ pnpm install
 # Build all packages
 pnpm run build
 
-# Initialize configuration
-./scripts/onboard.sh
+# Run tests
+pnpm test
+
+# Start development mode
+pnpm run dev
 ```
 
-### 2. Using OmniRoute (Intelligent Routing)
+## Contributing
 
-**From Zo chat:**
-```
-Route this task through OmniRoute: "Implement a webhook retry system"
-```
+Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) for details.
 
-**From terminal:**
-```bash
-# Quick combo recommendation
-zouroboros-omniroute "Fix the login bug"
-# Output: swarm-light
+## License
 
-# Full analysis with OmniRoute integration
-zouroboros-omniroute --omniroute --json "Implement webhook retry"
-# Output: { tier: "moderate", score: 0.64, resolvedCombo: "swarm-mid", ... }
+MIT License — see [LICENSE](./LICENSE) for details.
 
-# With constraints
-zouroboros-omniroute --budget low --speed high "Quick fix"
-```
+## Acknowledgments
 
-**From code:**
-```typescript
-import { resolve, resolveQuick } from 'zouroboros-omniroute';
-
-// Quick resolution
-const combo = resolveQuick("Fix the login bug");
-
-// Full resolution
-const result = await resolve({
-  taskText: "Implement webhook retry",
-  useOmniRoute: true,
-});
-console.log(result.resolvedCombo); // "swarm-mid"
-```
-
-### 3. Using Memory
-
-**From Zo chat:**
-```
-Store this in memory: "User prefers TypeScript over Python for new projects"
-Search memory for: "TypeScript preferences"
-```
-
-**From terminal:**
-```bash
-# Store a fact
-zouroboros-memory store --entity user --key preference --value "TypeScript"
-
-# Search memory
-zouroboros-memory search "TypeScript preferences"
-
-# Capture current conversation
-zouroboros-memory capture
-```
-
-**From code:**
-```typescript
-import { storeFact, searchFacts } from 'zouroboros-memory';
-
-// Store a fact
-await storeFact({
-  entity: 'user',
-  key: 'preference',
-  value: 'TypeScript',
-  category: 'preference',
-});
-
-// Search memory
-const results = await searchFacts('TypeScript');
-```
+- Inspired by [Q00/ouroboros](https://github.com/Q00/ouroboros) for spec-first development patterns
+- Built for [Zo Computer](https://zo.computer) ecosystem
+- Thanks to all contributors and the Zo community
 
 ---
 
-## Configuration
+**Made with ❤️ for the Zo Computer ecosystem**
