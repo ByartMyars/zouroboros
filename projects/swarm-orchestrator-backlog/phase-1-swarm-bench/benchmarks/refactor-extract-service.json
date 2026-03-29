@@ -1,0 +1,55 @@
+{
+  "id": "refactor-extract-service",
+  "name": "Refactor: Extract Service Layer",
+  "category": "refactoring",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "The file src/controllers/userController.ts contains business logic mixed with HTTP handling. Extract the business logic into a separate src/services/userService.ts file. Keep the controller focused on HTTP concerns only (request parsing, response formatting, status codes).",
+    "context": "Code review feedback: 'Controllers should be thin, business logic belongs in services.'"
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/controllers/userController.ts": "import { Request, Response } from 'express';\nimport { db } from '../db';\n\nexport async function getUser(req: Request, res: Response) {\n  const { id } = req.params;\n  \n  const user = await db.query(\n    'SELECT * FROM users WHERE id = $1',\n    [id]\n  );\n  \n  if (!user.rows[0]) {\n    return res.status(404).json({ error: 'User not found' });\n  }\n  \n  return res.json(user.rows[0]);\n}\n\nexport async function createUser(req: Request, res: Response) {\n  const { email, name } = req.body;\n  \n  if (!email || !name) {\n    return res.status(400).json({ error: 'Email and name required' });\n  }\n  \n  // Hash password before storing\n  const hashedPassword = await hashPassword(req.body.password);\n  \n  const user = await db.query(\n    'INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING *',\n    [email, name, hashedPassword]\n  );\n  \n  return res.status(201).json(user.rows[0]);\n}\n\nasync function hashPassword(password: string): Promise<string> {\n  const bcrypt = require('bcrypt');\n  return bcrypt.hash(password, 10);\n}",
+      "src/db.ts": "export const db = {\n  query: async (sql: string, params: any[]) => {\n    // Mock database\n    return { rows: [] };\n  }\n};"
+    },
+    "directories": ["src/controllers", "src/services"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-service-file",
+      "type": "file-exists",
+      "description": "New userService.ts file created",
+      "config": { "filePath": "src/services/userService.ts" }
+    },
+    {
+      "id": "ac-business-logic-moved",
+      "type": "content-contains",
+      "description": "Business logic moved to service",
+      "config": { "expected": "export async function getUserById" }
+    },
+    {
+      "id": "ac-controller-thins",
+      "type": "content-contains",
+      "description": "Controller imports and uses service",
+      "config": { "expected": "userService" }
+    },
+    {
+      "id": "ac-db-queries-in-service",
+      "type": "content-contains",
+      "description": "Database queries are in service layer",
+      "config": { "expected": "db.query" }
+    },
+    {
+      "id": "ac-exports-exist",
+      "type": "content-contains",
+      "description": "Service exports functions",
+      "config": { "expected": "export" }
+    }
+  ],
+  "metadata": {
+    "tags": ["refactoring", "architecture", "clean-code"],
+    "avgDurationSeconds": 240,
+    "minExecutorVersion": "5.0.0"
+  }
+}

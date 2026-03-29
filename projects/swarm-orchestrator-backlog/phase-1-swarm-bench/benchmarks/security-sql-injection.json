@@ -1,0 +1,35 @@
+{
+  "id": "security-sql-injection",
+  "name": "Security: SQL Injection Prevention",
+  "category": "analysis",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Fix the SQL injection vulnerability in the user search endpoint and implement parameterized queries throughout.",
+    "tags": ["security", "sql", "injection", "database"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/db.js": "const { Pool } = require('pg');\nconst pool = new Pool();\n\nasync function searchUsers(query) {\n  // SQL injection vulnerability\n  const result = await pool.query(`SELECT * FROM users WHERE name LIKE '%${query}%'`);\n  return result.rows;\n}\n\nasync function getUserById(id) {\n  // Also vulnerable\n  return pool.query(`SELECT * FROM users WHERE id = ${id}`);\n}\n\nmodule.exports = { searchUsers, getUserById };\n"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "parameterized-queries",
+      "description": "Uses parameterized queries",
+      "type": "content-regex",
+      "config": { "path": "src/db.js", "pattern": "\\$1|\\$2|parameterized|prepared" }
+    },
+    {
+      "id": "no-string-concat",
+      "description": "No string concatenation in queries",
+      "type": "no-error-pattern",
+      "config": { "path": "src/db.js", "pattern": "LIKE '%\\$\\{|WHERE id = \\$\\{" }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 180,
+    "createdDate": "2026-03-28",
+    "tags": ["security", "sql", "injection"],
+    "source": "synthetic"
+  }
+}

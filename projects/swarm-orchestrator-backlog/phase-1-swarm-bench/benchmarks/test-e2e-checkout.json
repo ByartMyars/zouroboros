@@ -1,0 +1,42 @@
+{
+  "id": "test-e2e-checkout",
+  "name": "Testing: E2E Checkout Flow",
+  "category": "test-generation",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Write end-to-end tests for a shopping cart checkout flow using Playwright.",
+    "context": "The app has: Product listing page, Cart page, Checkout form, Order confirmation page.",
+    "tags": ["testing", "playwright", "e2e", "checkout"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/app.ts": "// Simple checkout app\nconst express = require('express');\nconst app = express();\napp.use(express.json());\n\nlet cart = [];\n\napp.get('/products', (req, res) => {\n  res.json([{ id: 1, name: 'Widget', price: 9.99 }]);\n});\n\napp.post('/cart/add', (req, res) => {\n  cart.push(req.body);\n  res.json({ success: true, cart });\n});\n\napp.post('/checkout', (req, res) => {\n  const orderId = 'ORD-' + Date.now();\n  cart = [];\n  res.json({ orderId, status: 'confirmed' });\n});\n\nmodule.exports = app;\n"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "test-file-exists",
+      "description": "Test file is created",
+      "type": "file-exists",
+      "config": { "path": "tests/e2e/checkout.spec.ts" }
+    },
+    {
+      "id": "adds-to-cart",
+      "description": "Tests adding item to cart",
+      "type": "content-regex",
+      "config": { "path": "tests/e2e/checkout.spec.ts", "pattern": "add|click|cart" }
+    },
+    {
+      "id": "checkout-flow",
+      "description": "Tests complete checkout flow",
+      "type": "content-regex",
+      "config": { "path": "tests/e2e/checkout.spec.ts", "pattern": "checkout|order|confirm" }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 200,
+    "createdDate": "2026-03-28",
+    "tags": ["testing", "playwright", "e2e"],
+    "source": "synthetic"
+  }
+}

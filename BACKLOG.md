@@ -31,6 +31,67 @@
 
 ## 🟡 P1 - Important
 
+### Repository Consolidation & Deprecation
+- [ ] **Migrate individual repos to monorepo** - Deprecate zo-swarm-orchestrator, zo-memory-system, etc. in favor of Zouroboros monorepo
+  - **Trigger**: When Zouroboros repo goes public
+  - **Strategy**: Archive with redirect notices (preserve history via git subtree)
+  - **Impact**: Stars reset to zero; forks orphaned but functional; deep links break
+
+  **Pre-Public (Current - Private Monorepo):**
+  - [x] **Create paired-branch automation script** - `scripts/paired-branch.sh` for managing cross-repo changes
+  - [x] **Create automated check agent** - Scheduled Tue/Fri 10 AM to detect unpaired changes
+    - Agent runs `scripts/check-paired-branches.sh --notify`
+    - Emails if issues found (uncommitted changes, unpaired branches, open PRs)
+  - [ ] Use hybrid paired-branch strategy for cross-repo changes:
+    ```bash
+    # Create branches across all repos
+    ./scripts/paired-branch.sh swarm-cascade-fix
+    
+    # Or for specific repos only
+    ./scripts/paired-branch.sh memory-hyde zo-memory-system,zo-swarm-orchestrator
+    
+    # Check status of existing workflow
+    ./scripts/paired-branch.sh --status feat/swarm-cascade-fix
+    
+    # Manual check (also runs via scheduled agent Tue/Fri 10 AM)
+    ./scripts/check-paired-branches.sh
+    ```
+  - [ ] Create feature branches in both repos with matching names: `feat/swarm-cascade-fix`
+  - [ ] Open PRs in parallel; merge zo-swarm-orchestrator first, then Zouroboros
+  - [ ] Document dependency order in PR descriptions
+
+  **Post-Public Deprecation Plan:**
+  
+  | Phase | Action | Output |
+  |-------|--------|--------|
+  | 1 | Archive individual repos with deprecation README | `github.com/user/repo` → archived, read-only |
+  | 2 | Subtree merge preserving full git history | `packages/swarm-orchestrator/` with blame intact |
+  | 3 | Export critical open issues to monorepo migration tracking issue | Single #1 issue with checklist |
+  | 4 | Update all package.json/go.mod paths | Dependencies point to monorepo subpaths |
+  | 5 | Pin monorepo to profile; update bio | Star accumulation begins fresh |
+
+  **Asset Preservation:**
+  | Asset | Fate | Mitigation |
+  |-------|------|------------|
+  | Stars | Lost (reset to 0) | Pin monorepo; stars recover over time |
+  | Forks | Orphaned (still functional) | Archive rather than delete |
+  | Deep links | Broken | README redirect notices in archived repos |
+  | Issues/PRs | Archived (visible, locked) | Export critical ones pre-archive |
+  | Git history | Preserved | Use `git subtree` for full history |
+
+  **Repos to Deprecate:**
+  - `zo-swarm-orchestrator` → `packages/swarm-orchestrator/`
+  - `zo-memory-system` → `packages/memory-system/`
+  - (Add others as they migrate)
+
+  **Command Reference for Subtree Migration:**
+  ```bash
+  git remote add swarm ../zo-swarm-orchestrator
+  git fetch swarm
+  git subtree add --prefix=packages/swarm-orchestrator swarm main
+  git remote remove swarm
+  ```
+
 ### Swarm Orchestrator Enhancements
 - [ ] **Streaming capture v2** - Real-time output streaming with backpressure
 - [ ] **Token optimizer integration** - Hierarchical memory strategies per-task

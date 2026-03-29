@@ -1,0 +1,68 @@
+{
+  "id": "test-write-unit-tests",
+  "name": "Testing: Write Unit Tests",
+  "category": "test-generation",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Write comprehensive unit tests for src/validators.ts. The module contains validation functions for user input. Cover all edge cases including: valid inputs, invalid inputs, boundary conditions, and error handling. Use Jest as the testing framework.",
+    "context": "The validators module has 0% test coverage and needs tests before production release."
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/validators.ts": "/**\n * User input validation utilities\n */\n\nexport interface ValidationResult {\n  valid: boolean;\n  error?: string;\n}\n\n/**\n * Validate email format\n */\nexport function validateEmail(email: string): ValidationResult {\n  if (!email) {\n    return { valid: false, error: 'Email is required' };\n  }\n  \n  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n  if (!emailRegex.test(email)) {\n    return { valid: false, error: 'Invalid email format' };\n  }\n  \n  return { valid: true };\n}\n\n/**\n * Validate password strength\n */\nexport function validatePassword(password: string): ValidationResult {\n  if (!password) {\n    return { valid: false, error: 'Password is required' };\n  }\n  \n  if (password.length < 8) {\n    return { valid: false, error: 'Password must be at least 8 characters' };\n  }\n  \n  if (!/[A-Z]/.test(password)) {\n    return { valid: false, error: 'Password must contain an uppercase letter' };\n  }\n  \n  if (!/[a-z]/.test(password)) {\n    return { valid: false, error: 'Password must contain a lowercase letter' };\n  }\n  \n  if (!/[0-9]/.test(password)) {\n    return { valid: false, error: 'Password must contain a number' };\n  }\n  \n  return { valid: true };\n}\n\n/**\n * Validate username\n */\nexport function validateUsername(username: string): ValidationResult {\n  if (!username) {\n    return { valid: false, error: 'Username is required' };\n  }\n  \n  if (username.length < 3) {\n    return { valid: false, error: 'Username must be at least 3 characters' };\n  }\n  \n  if (username.length > 20) {\n    return { valid: false, error: 'Username must be at most 20 characters' };\n  }\n  \n  if (!/^[a-zA-Z0-9_]+$/.test(username)) {\n    return { valid: false, error: 'Username can only contain letters, numbers, and underscores' };\n  }\n  \n  return { valid: true };\n}\n\n/**\n * Validate age\n */\nexport function validateAge(age: number): ValidationResult {\n  if (age === undefined || age === null) {\n    return { valid: false, error: 'Age is required' };\n  }\n  \n  if (typeof age !== 'number') {\n    return { valid: false, error: 'Age must be a number' };\n  }\n  \n  if (age < 0) {\n    return { valid: false, error: 'Age cannot be negative' };\n  }\n  \n  if (age > 150) {\n    return { valid: false, error: 'Age cannot exceed 150' };\n  }\n  \n  if (!Number.isInteger(age)) {\n    return { valid: false, error: 'Age must be a whole number' };\n  }\n  \n  return { valid: true };\n}",
+      "package.json": "{\n  \"name\": \"validator-tests\",\n  \"scripts\": {\n    \"test\": \"jest\"\n  },\n  \"devDependencies\": {\n    \"jest\": \"^29.0.0\",\n    \"typescript\": \"^5.0.0\"\n  }\n}",
+      "jest.config.js": "module.exports = {\n  preset: 'ts-jest',\n  testEnvironment: 'node',\n  roots: ['<rootDir>/src']\n};"
+    },
+    "directories": ["src", "__tests__"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-test-file-exists",
+      "type": "file-exists",
+      "description": "Test file created",
+      "config": { "filePath": "__tests__/validators.test.ts" }
+    },
+    {
+      "id": "ac-email-tests",
+      "type": "content-contains",
+      "description": "Tests email validation",
+      "config": { "expected": "validateEmail" }
+    },
+    {
+      "id": "ac-password-tests",
+      "type": "content-contains",
+      "description": "Tests password validation",
+      "config": { "expected": "validatePassword" }
+    },
+    {
+      "id": "ac-username-tests",
+      "type": "content-contains",
+      "description": "Tests username validation",
+      "config": { "expected": "validateUsername" }
+    },
+    {
+      "id": "ac-age-tests",
+      "type": "content-contains",
+      "description": "Tests age validation",
+      "config": { "expected": "validateAge" }
+    },
+    {
+      "id": "ac-edge-cases",
+      "type": "content-contains",
+      "description": "Tests edge cases",
+      "config": { "expected": "toBe" }
+    },
+    {
+      "id": "ac-jest-matchers",
+      "type": "content-contains",
+      "description": "Uses Jest matchers",
+      "config": { "expected": "describe" }
+    }
+  ],
+  "metadata": {
+    "tags": ["testing", "jest", "unit-tests"],
+    "avgDurationSeconds": 180,
+    "minExecutorVersion": "5.0.0"
+  }
+}

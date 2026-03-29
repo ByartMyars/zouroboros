@@ -1,0 +1,55 @@
+{
+  "id": "bug-fix-memory-leak",
+  "name": "Bug Fix: Memory Leak in Data Cache",
+  "category": "bug-fix",
+  "difficulty": "hard",
+  "task": {
+    "prompt": "The application is experiencing memory growth over time. Investigate the data cache implementation in src/cache.ts and identify the memory leak. Fix the issue and ensure the cache properly evicts old entries when it reaches maxSize.",
+    "context": "Users report the app slows down after running for several hours."
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/cache.ts": "export interface CacheEntry<T> {\n  key: string;\n  value: T;\n  timestamp: number;\n}\n\nexport class DataCache<T> {\n  private cache: Map<string, CacheEntry<T>> = new Map();\n  \n  constructor(private maxSize: number = 100) {}\n  \n  set(key: string, value: T): void {\n    this.cache.set(key, {\n      key,\n      value,\n      timestamp: Date.now()\n    });\n    // Missing: eviction logic when maxSize exceeded\n  }\n  \n  get(key: string): T | undefined {\n    return this.cache.get(key)?.value;\n  }\n  \n  clear(): void {\n    this.cache.clear();\n  }\n}",
+      "src/app.ts": "import { DataCache } from './cache';\n\nconst cache = new DataCache<string>(10);\n\n// Simulate caching operations\nfor (let i = 0; i < 1000; i++) {\n  cache.set(`key-${i}`, `value-${i}`);\n}\n\nconsole.log('Cache size:', (cache as any).cache.size);\nconsole.log('Memory leak detected: size exceeds maxSize');"
+    },
+    "directories": ["src"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-eviction",
+      "type": "content-contains",
+      "description": "Cache implements eviction when exceeding maxSize",
+      "config": { "expected": "delete" }
+    },
+    {
+      "id": "ac-size-check",
+      "type": "content-contains",
+      "description": "Cache size is checked before adding new entries",
+      "config": { "expected": "size" }
+    },
+    {
+      "id": "ac-lru-or-ttl",
+      "type": "any-of",
+      "config": {
+        "criteria": [
+          { "type": "content-contains", "description": "Uses LRU eviction", "config": { "expected": "LRU" } },
+          { "type": "content-contains", "description": "Uses TTL expiration", "config": { "expected": "ttl" } },
+          { "type": "content-contains", "description": "Uses FIFO eviction", "config": { "expected": "shift" } }
+        ]
+      }
+    },
+    {
+      "id": "ac-no-error",
+      "type": "no-error-pattern",
+      "description": "No TypeScript errors in fixed code",
+      "config": { "pattern": "error TS" }
+    }
+  ],
+  "metadata": {
+    "tags": ["memory", "cache", "bug-fix"],
+    "avgDurationSeconds": 180,
+    "minExecutorVersion": "5.0.0",
+    "典出": "Production issue 2026-03"
+  }
+}

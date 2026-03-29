@@ -1,0 +1,68 @@
+{
+  "id": "code-review-pr-author",
+  "name": "Code Review: Missing Null Check",
+  "category": "code-review",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Review the code in src/utils.ts and identify any potential bugs or issues. Focus on null/undefined handling, error cases, and security concerns.",
+    "context": "This is a utility module used across multiple production services. It handles user data transformations.",
+    "constraints": [
+      "Report findings in a structured format",
+      "Prioritize issues by severity (critical/high/medium/low)",
+      "Provide specific code locations for each issue"
+    ]
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-finds-null-check",
+      "description": "Must identify the null check missing on line 42 in parseUserData function",
+      "type": "content-contains",
+      "config": {
+        "pattern": "null.*check|undefined.*check|line.*42|parseUserData.*42"
+      }
+    },
+    {
+      "id": "ac-structured-format",
+      "description": "Report must be in structured format with severity levels",
+      "type": "content-regex",
+      "config": {
+        "pattern": "(critical|high|medium|low).*severity|##\\s*(Critical|High|Medium|Low)"
+      }
+    },
+    {
+      "id": "ac-no-false-negatives",
+      "description": "Must not miss obvious bugs",
+      "type": "no-error-pattern",
+      "config": {
+        "pattern": "looks good|no issues found|no problems found"
+      }
+    }
+  ],
+  "workspaceSetup": {
+    "files": {
+      "src/utils.ts": "export function parseUserData(data: any) {\n  const result = {\n    id: data.id,\n    name: data.name,\n    email: data.email?.toLowerCase(),\n  };\n  \n  // Missing null check on data.id\n  if (data.id.length > 0) {\n    return result;\n  }\n  \n  return result;\n}\n\nexport function formatDate(timestamp: number | null): string {\n  if (timestamp === null) {\n    return 'N/A';\n  }\n  return new Date(timestamp).toISOString();\n}\n\nexport function sanitizeInput(input: string): string {\n  return input.replace(/[<>]/g, '');\n}\n"
+    },
+    "directories": ["src", "tests"]
+  },
+  "groundTruth": {
+    "outputPatterns": {
+      "stdout": ["null.*check", "undefined", "line.*42", "parseUserData"],
+      "stderr": []
+    }
+  },
+  "metadata": {
+    "author": "swarm-bench",
+    "createdAt": "2026-03-28T00:00:00Z",
+    "tags": ["code-review", "null-safety", "bug-detection"],
+    "notes": [
+      "Tests ability to identify subtle null/undefined bugs",
+      "Requires understanding of TypeScript type narrowing"
+    ],
+    "avgDurationSeconds": 45,
+    "historicalPassRate": {
+      "claude-code": 0.85,
+      "hermes": 0.72,
+      "gemini": 0.78
+    }
+  }
+}

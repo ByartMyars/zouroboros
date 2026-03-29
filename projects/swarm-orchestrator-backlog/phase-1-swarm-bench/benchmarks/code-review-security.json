@@ -1,0 +1,41 @@
+{
+  "id": "code-review-security",
+  "name": "Code Review: Security Assessment",
+  "category": "code-review",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Perform a security code review on the authentication module. Identify all vulnerabilities and provide severity ratings with fix recommendations.",
+    "tags": ["security", "code-review", "authentication"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/auth.js": "const bcrypt = require('bcrypt');\nconst jwt = require('jsonwebtoken');\n\nasync function login(username, password) {\n  const user = await db.query(`SELECT * FROM users WHERE username = '${username}'`);\n  if (!user) return null;\n  \n  const match = await bcrypt.compare(password, user.password_hash);\n  if (!match) return null;\n  \n  // Token expires in 30 days\n  return jwt.sign({ id: user.id }, process.env.JWT_SECRET);\n}\n\nfunction verifyToken(token) {\n  return jwt.verify(token, process.env.JWT_SECRET);\n}\n\nmodule.exports = { login, verifyToken };\n"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "finds-sql-injection",
+      "description": "Identifies SQL injection vulnerability",
+      "type": "output-contains",
+      "config": { "pattern": "sql injection|string interpolation|sqlmap|attack" }
+    },
+    {
+      "id": "finds-timing-attack",
+      "description": "Identifies timing attack in login",
+      "type": "output-contains",
+      "config": { "pattern": "timing|constant.?time|brute|attack" }
+    },
+    {
+      "id": "provides-fixes",
+      "description": "Provides fix recommendations",
+      "type": "output-contains",
+      "config": { "pattern": "parameterized|fixed.?time|bcrypt|scrypt" }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 200,
+    "createdDate": "2026-03-28",
+    "tags": ["security", "code-review", "authentication"],
+    "source": "synthetic"
+  }
+}

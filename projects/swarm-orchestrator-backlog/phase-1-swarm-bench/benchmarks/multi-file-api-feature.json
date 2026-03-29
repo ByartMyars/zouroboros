@@ -1,0 +1,81 @@
+{
+  "id": "multi-file-api-feature",
+  "name": "Multi-File: New API Feature",
+  "category": "multi-file",
+  "difficulty": "hard",
+  "task": {
+    "prompt": "Implement a user profile API with GET, PUT, and DELETE endpoints. Include validation, error handling, and database integration.",
+    "context": "You are building a REST API for user profile management. Use Express.js.",
+    "constraints": [
+      "Use TypeScript",
+      "Validate all inputs",
+      "Return proper HTTP status codes"
+    ],
+    "tags": ["api", "rest", "typescript", "express"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/index.ts": "import express from 'express';\nconst app = express();\napp.use(express.json());\n\n// TODO: Implement user profile endpoints\n\napp.listen(3000, () => console.log('Server running on port 3000'));\n",
+      "src/types.ts": "export interface User {\n  id: string;\n  email: string;\n  name: string;\n  createdAt: Date;\n}\n",
+      "package.json": "{\n  \"name\": \"user-api\",\n  \"version\": \"1.0.0\",\n  \"scripts\": {\n    \"start\": \"ts-node src/index.ts\"\n  }\n}"
+    },
+    "directories": ["src", "src/routes", "src/models", "src/middleware"],
+    "env": {
+      "NODE_ENV": "development",
+      "PORT": "3000"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "get-endpoint",
+      "description": "GET /users/:id returns user data with 200 status",
+      "type": "file-exists",
+      "config": {
+        "path": "src/routes/users.ts",
+        "pattern": "router.get"
+      }
+    },
+    {
+      "id": "put-endpoint",
+      "description": "PUT /users/:id updates user data",
+      "type": "file-exists",
+      "config": {
+        "path": "src/routes/users.ts",
+        "pattern": "router.put"
+      }
+    },
+    {
+      "id": "delete-endpoint",
+      "description": "DELETE /users/:id removes user",
+      "type": "file-exists",
+      "config": {
+        "path": "src/routes/users.ts",
+        "pattern": "router.delete"
+      }
+    },
+    {
+      "id": "validation",
+      "description": "Input validation is implemented",
+      "type": "file-exists",
+      "config": {
+        "path": "src/middleware/validation.ts",
+        "pattern": "validate"
+      }
+    },
+    {
+      "id": "error-handling",
+      "description": "Error handling middleware exists",
+      "type": "file-exists",
+      "config": {
+        "path": "src/middleware/errorHandler.ts",
+        "pattern": "error"
+      }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 300,
+    "createdDate": "2026-03-28",
+    "tags": ["api", "rest", "typescript", "express", "multi-file"],
+    "source": "synthetic"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "analysis-perf-bottleneck",
+  "name": "Analysis: Performance Bottleneck Detection",
+  "category": "analysis",
+  "difficulty": "hard",
+  "task": {
+    "prompt": "Analyze the codebase and identify the top 3 performance bottlenecks. Provide recommendations for optimization with estimated impact.",
+    "tags": ["performance", "analysis", "optimization"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/index.ts": "// Performance test application\nimport express from 'express';\nimport { Pool } from 'pg';\n\nconst app = express();\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\napp.get('/users', async (req, res) => {\n  const result = await pool.query('SELECT * FROM users');\n  res.json(result.rows);\n});\n\napp.get('/search', async (req, res) => {\n  const { q } = req.query;\n  const result = await pool.query(`SELECT * FROM products WHERE name LIKE '%${q}%'`);\n  res.json(result.rows);\n});\n\napp.listen(3000);\n",
+      "package.json": "{\n  \"name\": \"slow-app\",\n  \"dependencies\": {\n    \"express\": \"^4.18.0\",\n    \"pg\": \"^8.11.0\"\n  }\n}"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "identifies-n+1",
+      "description": "Identifies N+1 query problem in /users endpoint",
+      "type": "output-contains",
+      "config": { "pattern": "SELECT.*FROM users|N\\+1|query.*loop", "caseInsensitive": true }
+    },
+    {
+      "id": "identifies-sql-injection",
+      "description": "Identifies SQL injection vulnerability in /search",
+      "type": "output-contains",
+      "config": { "pattern": "SQL injection|string concatenation|dangerous|sanitize", "caseInsensitive": true }
+    },
+    {
+      "id": "provides-recommendations",
+      "description": "Provides specific optimization recommendations",
+      "type": "output-contains",
+      "config": { "pattern": "index|pool|connection|cache|prepared statement", "caseInsensitive": true }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 240,
+    "createdDate": "2026-03-28",
+    "tags": ["performance", "analysis", "security"],
+    "source": "synthetic"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "code-gen-data-pipeline",
+  "name": "Code Generation: Data Pipeline",
+  "category": "code-generation",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Create a data pipeline that reads from a CSV file, transforms the data, and writes to a JSON file.",
+    "tags": ["data", "pipeline", "nodejs", "csv", "json"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/pipeline.ts": "// TODO: Implement data pipeline\n",
+      "sample-data.csv": "id,name,email,age\n1,John Doe,john@example.com,30\n2,Jane Smith,jane@example.com,25"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "reads-csv",
+      "description": "Pipeline reads from CSV file",
+      "type": "file-exists",
+      "config": { "path": "src/pipeline.ts", "pattern": "readFile|csv-parse" }
+    },
+    {
+      "id": "writes-json",
+      "description": "Pipeline writes output to JSON",
+      "type": "file-exists",
+      "config": { "path": "src/pipeline.ts", "pattern": "writeFile|JSON.stringify" }
+    },
+    {
+      "id": "transforms-data",
+      "description": "Pipeline includes data transformation logic",
+      "type": "file-exists",
+      "config": { "path": "src/pipeline.ts", "pattern": "map|transform" }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 180,
+    "createdDate": "2026-03-28",
+    "tags": ["data", "pipeline", "csv", "json"],
+    "source": "synthetic"
+  }
+}

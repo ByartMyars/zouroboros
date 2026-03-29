@@ -1,0 +1,36 @@
+{
+  "id": "bug-fix-race-condition",
+  "name": "Bug Fix: Race Condition in Cache",
+  "category": "bug-fix",
+  "difficulty": "hard",
+  "task": {
+    "prompt": "Fix the race condition bug in the cache implementation where concurrent reads and writes can return stale data.",
+    "context": "The cache.js file has a shared Map that's accessed by multiple async operations without proper locking.",
+    "tags": ["bug-fix", "concurrency", "cache", "async"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/cache.js": "// Buggy cache implementation\nclass Cache {\n  constructor() {\n    this.store = new Map();\n  }\n\n  async get(key) {\n    return this.store.get(key);\n  }\n\n  async set(key, value) {\n    // Race condition: no locking between check and set\n    if (!this.store.has(key)) {\n      await someAsyncOperation();\n      this.store.set(key, value);\n    }\n    return value;\n  }\n\n  async delete(key) {\n    return this.store.delete(key);\n  }\n}\n\nmodule.exports = Cache;\n"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "uses-promise-lock",
+      "description": "Implementation uses promise-based locking",
+      "type": "content-regex",
+      "config": { "path": "src/cache.js", "pattern": "lock|mutex|Promise.*resolve", "caseInsensitive": true }
+    },
+    {
+      "id": "handles-concurrent",
+      "description": "Handles concurrent access correctly",
+      "type": "content-regex",
+      "config": { "path": "src/cache.js", "pattern": "await|async", "caseInsensitive": true }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 240,
+    "createdDate": "2026-03-28",
+    "tags": ["bug-fix", "concurrency", "async"],
+    "source": "synthetic"
+  }
+}

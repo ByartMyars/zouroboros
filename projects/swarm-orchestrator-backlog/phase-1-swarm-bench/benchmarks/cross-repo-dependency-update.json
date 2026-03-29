@@ -1,0 +1,36 @@
+{
+  "id": "cross-repo-dependency-update",
+  "name": "Cross-Repo: Dependency Update",
+  "category": "cross-repo",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "Update the lodash dependency from 4.17.15 to 4.17.21 in package.json and fix any breaking changes in the codebase.",
+    "tags": ["dependency", "update", "maintenance"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "package.json": "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.15\"\n  }\n}",
+      "src/utils.js": "const _ = require('lodash');\n\nfunction processData(items) {\n  return _.chain(items)\n    .groupBy('type')\n    .mapValues(v => _.sumBy(v, 'value'))\n    .value();\n}\n\nfunction formatDate(date) {\n  return _.format(date, 'YYYY-MM-DD');\n}\n\nmodule.exports = { processData, formatDate };\n"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "package-updated",
+      "description": "package.json has updated version",
+      "type": "content-regex",
+      "config": { "path": "package.json", "pattern": "4\\.17\\.2[1-9]" }
+    },
+    {
+      "id": "code-works",
+      "description": "Code doesn't have breaking changes",
+      "type": "no-error-pattern",
+      "config": { "pattern": "isUndefined|_.format" }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 180,
+    "createdDate": "2026-03-28",
+    "tags": ["dependency", "maintenance"],
+    "source": "synthetic"
+  }
+}

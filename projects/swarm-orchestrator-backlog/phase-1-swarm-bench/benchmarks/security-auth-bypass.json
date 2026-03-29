@@ -1,0 +1,62 @@
+{
+  "id": "security-auth-bypass",
+  "name": "Security Audit: Authentication Bypass",
+  "category": "analysis",
+  "difficulty": "hard",
+  "task": {
+    "prompt": "Perform a security audit on src/auth.ts and src/api.ts. Identify any authentication or authorization vulnerabilities including: SQL injection, XSS, authentication bypasses, insecure token handling, privilege escalation risks, and session management issues. For each vulnerability found, provide: severity (Critical/High/Medium/Low), description, affected code location, and recommended fix.",
+    "context": "This code is scheduled for production deployment. A security review is required."
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/auth.ts": "import jwt from 'jsonwebtoken';\nimport { db } from './db';\n\nconst SECRET = process.env.JWT_SECRET || 'dev-secret-123';\n\nexport interface TokenPayload {\n  userId: string;\n  role: string;\n}\n\nexport async function login(email: string, password: string) {\n  // SQL injection vulnerability: user input directly in query\n  const result = await db.query(\n    `SELECT * FROM users WHERE email = '${email}' AND password = '${password}'`\n  );\n  \n  if (result.rows.length === 0) {\n    return null;\n  }\n  \n  const user = result.rows[0];\n  const token = jwt.sign(\n    { userId: user.id, role: user.role },\n    SECRET,\n    { expiresIn: '24h' }\n  );\n  \n  return { token, user };\n}\n\nexport function verifyToken(token: string) {\n  try {\n    return jwt.verify(token, SECRET);\n  } catch {\n    return null;\n  }\n}\n\nexport async function changePassword(userId: string, oldPassword: string, newPassword: string) {\n  // Insecure: no rate limiting, simple password comparison\n  const result = await db.query(\n    `SELECT * FROM users WHERE id = '${userId}' AND password = '${oldPassword}'`\n  );\n  \n  if (result.rows.length === 0) {\n    throw new Error('Invalid credentials');\n  }\n  \n  await db.query(\n    `UPDATE users SET password = '${newPassword}' WHERE id = '${userId}'`\n  );\n  \n  return { success: true };\n}",
+      "src/api.ts": "import express from 'express';\nimport { login, verifyToken } from './auth';\n\nconst app = express();\napp.use(express.json());\n\n// XSS vulnerability: user input reflected without sanitization\napp.post('/comments', (req, res) => {\n  const { comment } = req.body;\n  // Intentionally not sanitizing to demonstrate vulnerability\n  res.json({ success: true, displayed: comment });\n});\n\n// Authentication bypass: middleware not applied to protected route\napp.get('/api/admin/users', async (req, res) => {\n  const users = await db.query('SELECT * FROM users');\n  res.json(users.rows);\n});\n\n// IDOR vulnerability: user can access any user's data\napp.get('/api/users/:id/profile', (req, res) => {\n  const userId = req.params.id;\n  const user = db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user.rows[0]);\n});\n\napp.listen(3000);",
+      "src/db.ts": "export const db = {\n  query: (sql: string) => Promise.resolve({ rows: [] })\n};"
+    },
+    "directories": ["src"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-sql-injection",
+      "type": "content-contains",
+      "description": "Identifies SQL injection vulnerability",
+      "config": { "expected": "sql injection" }
+    },
+    {
+      "id": "ac-xss",
+      "type": "content-contains",
+      "description": "Identifies XSS vulnerability",
+      "config": { "expected": "xss" }
+    },
+    {
+      "id": "ac-auth-bypass",
+      "type": "content-contains",
+      "description": "Identifies auth bypass in admin route",
+      "config": { "expected": "authentication" }
+    },
+    {
+      "id": "ac-idor",
+      "type": "content-contains",
+      "description": "Identifies IDOR vulnerability",
+      "config": { "expected": "idor" }
+    },
+    {
+      "id": "ac-severity-rated",
+      "type": "content-contains",
+      "description": "Provides severity ratings",
+      "config": { "expected": "critical" }
+    },
+    {
+      "id": "ac-recommendations",
+      "type": "content-contains",
+      "description": "Provides remediation recommendations",
+      "config": { "expected": "fix" }
+    }
+  ],
+  "metadata": {
+    "tags": ["security", "audit", "vulnerabilities"],
+    "avgDurationSeconds": 300,
+    "minExecutorVersion": "5.0.0"
+  }
+}

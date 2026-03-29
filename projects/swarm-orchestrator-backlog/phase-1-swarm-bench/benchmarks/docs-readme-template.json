@@ -1,0 +1,42 @@
+{
+  "id": "docs-readme-template",
+  "name": "Documentation: README Template",
+  "category": "documentation",
+  "difficulty": "easy",
+  "task": {
+    "prompt": "Create a comprehensive README.md for this project with: installation instructions, usage examples, API documentation, and contribution guidelines.",
+    "tags": ["documentation", "readme", "onboarding"]
+  },
+  "workspaceSetup": {
+    "files": {
+      "package.json": "{\n  \"name\": \"my-package\",\n  \"version\": \"1.0.0\",\n  \"main\": \"index.js\"\n}",
+      "src/index.js": "module.exports = { greet: (name) => `Hello, ${name}!` };"
+    }
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "has-installation",
+      "description": "README includes installation section",
+      "type": "content-regex",
+      "config": { "path": "README.md", "pattern": "install|npm i", "caseInsensitive": true }
+    },
+    {
+      "id": "has-usage",
+      "description": "README includes usage examples",
+      "type": "content-regex",
+      "config": { "path": "README.md", "pattern": "example|usage|how to", "caseInsensitive": true }
+    },
+    {
+      "id": "has-api",
+      "description": "README includes API docs",
+      "type": "content-regex",
+      "config": { "path": "README.md", "pattern": "api|function|method", "caseInsensitive": true }
+    }
+  ],
+  "metadata": {
+    "avgDurationSeconds": 120,
+    "createdDate": "2026-03-28",
+    "tags": ["documentation", "readme"],
+    "source": "synthetic"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "performance-slow-query",
+  "name": "Performance: Optimize Slow Database Query",
+  "category": "analysis",
+  "difficulty": "medium",
+  "task": {
+    "prompt": "The search endpoint in src/search.ts is running slowly (>2s for typical queries). Profile the query, identify the bottleneck, and optimize it. The dataset has 100k+ users and 1M+ posts. Target: reduce query time to under 100ms. Document your changes and explain why they improve performance.",
+    "context": "Users are complaining about slow search. Monitoring shows P99 latency > 2s."
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/search.ts": "import { db } from './db';\n\n/**\n * Search users and posts by query string\n * Current implementation: Full table scan on every query\n */\nexport async function search(query: string, limit: number = 20) {\n  const results: any[] = [];\n  \n  // SLOW: Query 1 - Full table scan (no index)\n  const users = await db.query(\n    `SELECT * FROM users \n     WHERE name ILIKE '%${query}%' \n     OR email ILIKE '%${query}%'`\n  );\n  results.push(...users.rows.map(u => ({ type: 'user', ...u })));\n  \n  // SLOW: Query 2 - JOIN with no optimization\n  const posts = await db.query(\n    `SELECT p.*, u.name as author_name\n     FROM posts p\n     JOIN users u ON p.user_id = u.id\n     WHERE p.content ILIKE '%${query}%'\n     OR p.title ILIKE '%${query}%'`\n  );\n  results.push(...posts.rows.map(p => ({ type: 'post', ...p })));\n  \n  // SLOW: Query 3 - N+1 query for tags\n  for (const post of posts.rows.slice(0, 10)) {\n    const tags = await db.query(\n      `SELECT t.name FROM tags t\n       JOIN post_tags pt ON t.id = pt.tag_id\n       WHERE pt.post_id = '${post.id}'`\n    );\n    post.tags = tags.rows.map(t => t.name);\n  }\n  \n  return results.slice(0, limit);\n}\n\n/**\n * Get trending posts (used on homepage)\n * Current implementation: Complex aggregation on every request\n */\nexport async function getTrendingPosts(limit: number = 10) {\n  // SLOW: Full aggregation without materialized view\n  return await db.query(`\n    SELECT \n      p.id, p.title, p.content, p.created_at,\n      u.name as author_name,\n      COUNT(l.id) as like_count,\n      COUNT(c.id) as comment_count\n    FROM posts p\n    JOIN users u ON p.user_id = u.id\n    LEFT JOIN likes l ON p.id = l.post_id\n    LEFT JOIN comments c ON p.id = c.post_id\n    WHERE p.created_at > NOW() - INTERVAL '7 days'\n    GROUP BY p.id, u.name\n    ORDER BY like_count DESC, comment_count DESC\n    LIMIT ${limit}\n  `);\n}",
+      "src/db.ts": "export const db = {\n  query: (sql: string) => {\n    // Simulated slow database\n    return Promise.resolve({ rows: [] });\n  }\n};"
+    },
+    "directories": ["src"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-indexes",
+      "type": "content-contains",
+      "description": "Creates database indexes",
+      "config": { "expected": "CREATE INDEX" }
+    },
+    {
+      "id": "ac-query-optimization",
+      "type": "content-contains",
+      "description": "Optimizes slow queries",
+      "config": { "expected": "SELECT" }
+    },
+    {
+      "id": "ac-n-plus-one-fixed",
+      "type": "content-contains",
+      "description": "Fixes N+1 query problem",
+      "config": { "expected": "JOIN" }
+    },
+    {
+      "id": "ac-like-count-optimization",
+      "type": "content-contains",
+      "description": "Optimizes like count calculation",
+      "config": { "expected": "COUNT" }
+    },
+    {
+      "id": "ac-explain-analyze",
+      "type": "content-contains",
+      "description": "Documents query plan",
+      "config": { "expected": "EXPLAIN" }
+    },
+    {
+      "id": "ac-query-time-comment",
+      "type": "content-contains",
+      "description": "Mentions performance improvement",
+      "config": { "expected": "ms" }
+    }
+  ],
+  "metadata": {
+    "tags": ["performance", "database", "optimization"],
+    "avgDurationSeconds": 240,
+    "minExecutorVersion": "5.0.0"
+  }
+}

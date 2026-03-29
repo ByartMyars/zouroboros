@@ -1,0 +1,60 @@
+{
+  "id": "docs-api-endpoints",
+  "name": "Documentation: API Endpoint Docs",
+  "category": "documentation",
+  "difficulty": "easy",
+  "task": {
+    "prompt": "Generate API documentation for all endpoints in src/api.ts. Include: endpoint path, HTTP method, request parameters, request body schema, response format, and example requests/responses. Format as Markdown suitable for inclusion in README or API docs.",
+    "context": "The API is currently undocumented and users need to understand how to integrate."
+  },
+  "workspaceSetup": {
+    "files": {
+      "src/api.ts": "import express from 'express';\nconst router = express.Router();\n\n// GET /api/users - List all users\nrouter.get('/users', async (req, res) => {\n  const { limit = 10, offset = 0 } = req.query;\n  const users = await db.query(\n    'SELECT id, email, name, created_at FROM users LIMIT $1 OFFSET $2',\n    [limit, offset]\n  );\n  res.json({ users: users.rows, total: users.rows.length });\n});\n\n// GET /api/users/:id - Get single user\nrouter.get('/users/:id', async (req, res) => {\n  const { id } = req.params;\n  const user = await db.query('SELECT * FROM users WHERE id = $1', [id]);\n  if (!user.rows[0]) {\n    return res.status(404).json({ error: 'User not found' });\n  }\n  res.json(user.rows[0]);\n});\n\n// POST /api/users - Create user\nrouter.post('/users', async (req, res) => {\n  const { email, name, password } = req.body;\n  if (!email || !name || !password) {\n    return res.status(400).json({ error: 'Missing required fields' });\n  }\n  const user = await db.query(\n    'INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING *',\n    [email, name, password]\n  );\n  res.status(201).json(user.rows[0]);\n});\n\n// DELETE /api/users/:id - Delete user\nrouter.delete('/users/:id', async (req, res) => {\n  const { id } = req.params;\n  await db.query('DELETE FROM users WHERE id = $1', [id]);\n  res.status(204).send();\n});\n\n// GET /api/health - Health check\nrouter.get('/health', (req, res) => {\n  res.json({ status: 'ok', timestamp: new Date().toISOString() });\n});\n\nexport default router;"
+    },
+    "directories": ["src", "docs"],
+    "gitHistory": []
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "ac-endpoints-documented",
+      "type": "content-contains",
+      "description": "Documents the users endpoint",
+      "config": { "expected": "/users" }
+    },
+    {
+      "id": "ac-methods-documented",
+      "type": "content-contains",
+      "description": "Documents HTTP methods",
+      "config": { "expected": "GET" }
+    },
+    {
+      "id": "ac-request-docs",
+      "type": "content-contains",
+      "description": "Documents request parameters",
+      "config": { "expected": "limit" }
+    },
+    {
+      "id": "ac-response-docs",
+      "type": "content-contains",
+      "description": "Documents response format",
+      "config": { "expected": "json" }
+    },
+    {
+      "id": "ac-health-check",
+      "type": "content-contains",
+      "description": "Documents health endpoint",
+      "config": { "expected": "health" }
+    },
+    {
+      "id": "ac-markdown-format",
+      "type": "content-contains",
+      "description": "Uses Markdown formatting",
+      "config": { "expected": "##" }
+    }
+  ],
+  "metadata": {
+    "tags": ["documentation", "api", "developer-experience"],
+    "avgDurationSeconds": 120,
+    "minExecutorVersion": "5.0.0"
+  }
+}
