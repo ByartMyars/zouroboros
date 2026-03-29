@@ -92,7 +92,15 @@
   git remote remove swarm
   ```
 
-### Swarm Orchestrator Enhancements
+### Swarm Orchestrator
+
+> **Note (2026-03-29)**: Tier-resolver v2.1.0 has been released with 84% accuracy on 50 test cases. 
+> Update dependency reference: `omniroute-tier-resolver@feature/v2-improvements-sessions-1-2`
+> 
+> Key improvements: threshold recalibration, 9 targeted tier overrides, auto-tune pipeline, 50-case test suite.
+> Known: 8 boundary-case failures documented in tier-resolver PR.
+
+## Swarm Orchestrator Enhancements
 - [ ] **Streaming capture v2** - Real-time output streaming with backpressure
 - [ ] **Token optimizer integration** - Hierarchical memory strategies per-task
 - [ ] **Stagnation detection** - Automatic unstuck trigger when tasks stall
