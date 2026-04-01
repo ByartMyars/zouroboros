@@ -153,6 +153,24 @@ Evaluate AgentKV (Python/C++) and CortexDB (Go) as potential backends for zo-mem
 
 ### Memory System
 
+#### Memory v4 Enhancements (Migrated from zouroboros-memory-system)
+**Status**: Migrated 2026-04-01
+**Impact**: High — 9 new capabilities in packages/memory/src/
+
+Migrated scripts from `zouroboros-memory-system` into the monorepo:
+
+| ID | Feature | File |
+|----|---------|------|
+| MEM-001 | Context Budget Awareness | `context-budget.ts` |
+| MEM-002 | Recursive Episode Summarization | `episode-summarizer.ts` |
+| MEM-003 | Iterative Multi-Hop Retrieval | `multi-hop.ts` |
+| MEM-101 | Memory System Metrics Dashboard | `metrics.ts` |
+| MEM-102 | Import Pipeline (ChatGPT, Obsidian, Markdown) | `import-pipeline.ts` |
+| MEM-103 | Memory Conflict Resolution | `conflict-resolver.ts` |
+| MEM-104 | Cross-Persona Memory Sharing | `cross-persona.ts` |
+| MEM-105 | Enhanced Knowledge Graph Traversal | `graph-traversal.ts` |
+| MEM-202 | Embedding Model Benchmark | `embedding-benchmark.ts` |
+
 #### [MEM-201] Vector Database Migration
 **Status**: Not Started
 **Effort**: High (5-7 days)
@@ -190,7 +208,7 @@ Proposed: Add LanceDB or pgvector for >10k facts.
 
 **Repos to Deprecate:**
 - `zo-swarm-orchestrator` → `packages/swarm/`
-- `zo-memory-system` → `packages/memory/`
+- ~~`zo-memory-system`~~ → `packages/memory/` (v4 enhancements migrated 2026-04-01)
 - ~~`Projects/zouroboros-rag-expansion`~~ → `packages/rag/` ✅ (2026-04-01)
 
 ---

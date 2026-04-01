@@ -10,7 +10,7 @@ import { initDatabase as _initDb, closeDatabase as _closeDb, runMigrations as _r
 import { getEpisodeStats as _getEpisodeStats } from './episodes.js';
 import { ensureProfileSchema as _ensureProfileSchema } from './profiles.js';
 
-export const VERSION = '2.0.0';
+export const VERSION = '3.0.0';
 
 // Database
 export {
@@ -91,6 +91,116 @@ export type { CaptureResult, CaptureOptions } from './capture.js';
 
 // MCP Server
 export { handleMessage, startMcpServer } from './mcp-server.js';
+
+// v4 Enhancements — Context Budget (MEM-001)
+export {
+  estimateTokens,
+  estimateFactTokens,
+  getBudget,
+  updateBudget,
+  resetBudget,
+  initBudget,
+  planCompression,
+  createCheckpoint,
+  loadCheckpoint,
+  listCheckpoints,
+  retrievalWithBudget,
+} from './context-budget.js';
+export type {
+  ContextBudget,
+  BudgetCheckpoint,
+  CompressedFact,
+  BudgetMetrics,
+  CompressionPlan,
+  RetrievalBudgetResult,
+} from './context-budget.js';
+
+// v4 Enhancements — Episode Summarizer (MEM-002)
+export {
+  compressEpisodes,
+  getCompressedEpisode,
+  listCompressedEpisodes,
+  shouldSummarize,
+} from './episode-summarizer.js';
+export type {
+  CompressedEpisode,
+  SummarizationResult,
+  EpisodeForCompression,
+  ShouldSummarizeResult,
+} from './episode-summarizer.js';
+
+// v4 Enhancements — Metrics Dashboard (MEM-101)
+export {
+  recordSearchOperation,
+  recordCaptureOperation,
+  recordGateDecision,
+  collectMetrics,
+  printReport,
+} from './metrics.js';
+export type {
+  MemoryMetrics,
+  CaptureStats,
+  SearchMetrics,
+  OperationStats,
+  GateMetrics,
+} from './metrics.js';
+
+// v4 Enhancements — Multi-Hop Retrieval (MEM-003)
+export type {
+  HopResult,
+  MultiHopResult,
+} from './multi-hop.js';
+
+// v4 Enhancements — Conflict Resolver (MEM-103)
+export {
+  isContradiction,
+  findEntityConflicts,
+  detectNewConflict,
+  resolveConflict,
+  resolveAllPending,
+  trackProvenance,
+  getProvenance,
+  getFactHistory,
+} from './conflict-resolver.js';
+export type {
+  ConflictType,
+  ResolutionStrategy,
+  ConflictRecord,
+  ProvenanceRecord,
+} from './conflict-resolver.js';
+
+// v4 Enhancements — Cross-Persona Memory (MEM-104)
+export {
+  listPools,
+  createPool,
+  addToPool,
+  removeFromPool,
+  setInheritance,
+  getAccessiblePersonas,
+  searchCrossPersona,
+} from './cross-persona.js';
+export type {
+  SharedPool,
+  PersonaNode,
+} from './cross-persona.js';
+
+// v4 Enhancements — Graph Traversal (MEM-105)
+export {
+  getAncestors,
+  getDescendants,
+  detectCycles,
+  inferRelations,
+  exportDot,
+  KNOWN_RELATIONS,
+} from './graph-traversal.js';
+
+// v4 Enhancements — Embedding Benchmark (MEM-202)
+// Note: embedding-benchmark.ts is a standalone CLI tool, not re-exported as library API.
+// Run directly: bun packages/memory/src/embedding-benchmark.ts
+
+// v4 Enhancements — Import Pipeline (MEM-102)
+// Note: import-pipeline.ts is a standalone CLI tool, not re-exported as library API.
+// Run directly: bun packages/memory/src/import-pipeline.ts --source <type> --path <path>
 
 // Re-export types
 export type {
