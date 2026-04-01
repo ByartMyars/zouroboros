@@ -8,7 +8,7 @@
 
 ## Overview
 
-Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-install monorepo. It provides a complete toolkit for building AI-powered applications with sophisticated memory, intelligent routing, multi-agent orchestration, and self-healing capabilities.
+Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-install monorepo. Built from the ground up on [Zo Computer](https://zo.computer) — not ported from external platforms — every module is native to the Zo ecosystem. It provides a complete toolkit for building AI-powered applications with sophisticated memory, multi-agent orchestration, and self-healing capabilities.
 
 ### Key Features
 
@@ -260,7 +260,7 @@ MIT License — see [LICENSE](./LICENSE) for details.
 ## Acknowledgments
 
 - Inspired by [Q00/ouroboros](https://github.com/Q00/ouroboros) for spec-first development patterns
-- Built for [Zo Computer](https://zo.computer) ecosystem
+- Built natively on [Zo Computer](https://zo.computer) — [try Zo Computer](https://zo-computer.cello.so/IgX9SnGpKnR)
 - Thanks to all contributors and the Zo community
 
 ---
