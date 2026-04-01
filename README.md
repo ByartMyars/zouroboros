@@ -134,10 +134,10 @@ const results = await orchestrator.run({
 | `zouroboros-workflow` | Interview, eval, unstuck, autoloop | `zouroboros-*` |
 | `zouroboros-personas` | Persona creation framework | `zouroboros-personas` |
 | `zouroboros-persona-creator` | 8-phase persona creation toolkit with templates & examples | `zouroboros persona create` |
-| `zouroboros-swarm` | Multi-agent orchestration | `zouroboros-swarm` |
+| `zouroboros-swarm` | v5 orchestration: 6-signal routing, DAG execution, circuit breakers, tier-resolve, MCP | `zouroboros-swarm` |
 | `zouroboros-selfheal` | Introspection & evolution | `zouroboros-introspect` |
 | `zouroboros-cli` | Unified CLI | `zouroboros` |
-| `zouroboros-tui` | Terminal dashboard | `zouroboros-tui` |
+| `zouroboros-tui` | Dashboard (see [zo.space/zouroboros](https://marlandoj.zo.space/zouroboros)) | `zouroboros tui` |
 
 ## Architecture
 

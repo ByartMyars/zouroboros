@@ -1,7 +1,7 @@
 {
   "name": "zouroboros-swarm",
-  "version": "2.0.0",
-  "description": "Multi-agent orchestration with circuit breakers and 6-signal routing",
+  "version": "5.0.0",
+  "description": "Production multi-agent orchestration with circuit breakers, 6-signal routing, DAG execution, tier-resolve, and MCP transport",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,7 +11,14 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "bun test src/__tests__/"
+    "test": "bun test src/__tests__/",
+    "orchestrate": "bun scripts/orchestrate-v5.ts",
+    "doctor": "bun scripts/orchestrate-v5.ts doctor",
+    "status": "bun scripts/orchestrate-v5.ts status",
+    "bench": "bun scripts/swarm-bench.ts",
+    "tier-resolve": "bun scripts/tier-resolve.ts",
+    "mcp": "bun scripts/mcp-server.ts",
+    "mcp-http": "bun scripts/mcp-server-http.ts"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"
@@ -22,13 +29,8 @@
     "typescript": "^5.0.0"
   },
   "keywords": [
-    "swarm",
-    "orchestration",
-    "multi-agent",
-    "circuit-breaker",
-    "routing",
-    "dag",
-    "zouroboros"
+    "swarm", "orchestration", "multi-agent", "circuit-breaker",
+    "routing", "dag", "tier-resolve", "mcp", "zouroboros"
   ],
   "license": "MIT",
   "author": "marlandoj.zo.computer"
