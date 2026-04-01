@@ -189,27 +189,31 @@ Proposed: Add LanceDB or pgvector for >10k facts.
 
 ---
 
-### Repository Consolidation (Remaining)
+### Repository Consolidation ✅ Complete
 
-- [ ] **Migrate remaining individual repos to monorepo** — Deprecate zo-swarm-orchestrator, zo-memory-system, etc.
-  - Use hybrid paired-branch strategy for cross-repo changes
-  - Open PRs in parallel; merge individual repos first, then monorepo
-  - Document dependency order in PR descriptions
+All individual repos have been migrated to the monorepo and archived (2026-04-01):
 
-**Post-Public Deprecation Plan:**
+| Repo | Monorepo Location | Status |
+|------|-------------------|--------|
+| ~~`zouroboros-memory-system`~~ | `packages/memory/` | ✅ Migrated + archived |
+| ~~`zouroboros-swarm-orchestrator`~~ | `packages/swarm/` | ✅ Archived |
+| ~~`zouroboros-swarm-executors`~~ | `packages/swarm/src/executor/` | ✅ Migrated + archived |
+| ~~`zouroboros-persona-creator`~~ | `packages/persona-creator/` | ✅ Archived |
+| ~~`Projects/zouroboros-rag-expansion`~~ | `packages/rag/` | ✅ Migrated (2026-04-01) |
 
-| Phase | Action | Output |
+**Remaining standalone repos (not part of monorepo):**
+- `zouroboros-seedkit` — Standalone installer/bootstrap kit, stays independent
+- `zo-ai-character-builder` — Standalone skill, stays independent
+
+**Post-Archive Remaining Steps:**
+
+| Phase | Action | Status |
 |-------|--------|--------|
-| 1 | Archive individual repos with deprecation README | Archived, read-only |
-| 2 | Subtree merge preserving full git history | `packages/` with blame intact |
-| 3 | Export critical open issues to monorepo | Single tracking issue |
-| 4 | Update all package.json paths | Dependencies point to monorepo |
-| 5 | Pin monorepo to profile; update bio | Star accumulation begins fresh |
-
-**Repos to Deprecate:**
-- `zo-swarm-orchestrator` → `packages/swarm/`
-- ~~`zo-memory-system`~~ → `packages/memory/` (v4 enhancements migrated 2026-04-01)
-- ~~`Projects/zouroboros-rag-expansion`~~ → `packages/rag/` ✅ (2026-04-01)
+| 1 | Archive individual repos with deprecation README | ✅ Done |
+| 2 | Subtree merge preserving full git history | Deferred — current copy-based migration is sufficient |
+| 3 | Export critical open issues to monorepo | ✅ No open issues on archived repos |
+| 4 | Update all package.json paths | ✅ Dependencies point to monorepo |
+| 5 | Pin monorepo to profile; update bio | Pending |
 
 ---
 
