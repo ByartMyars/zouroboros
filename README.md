@@ -13,8 +13,7 @@ Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-inst
 ### Key Features
 
 🧠 **Hybrid Memory System** — SQLite + vector embeddings with episodic memory  
-🎯 **Intelligent Routing** — OmniRoute integration with complexity-aware model selection  
-🐝 **Swarm Orchestration** — Multi-agent campaigns with circuit breakers and DAG execution  
+🐝 **Swarm Orchestration** — Multi-agent campaigns with circuit breakers and DAG execution
 🎭 **Persona Framework** — SOUL/IDENTITY architecture with 8-phase creation workflow  
 🔄 **Spec-First Development** — Interview, evaluate, unstuck, and autoloop tools  
 🏥 **Self-Healing** — Daily introspection, prescription, and autonomous evolution  
@@ -63,10 +62,6 @@ Run a spec-first interview for building a REST API
 ```
 
 ```
-Route this task to the optimal model: Debug authentication errors
-```
-
-```
 Check my Zouroboros system health
 ```
 
@@ -76,9 +71,6 @@ Check my Zouroboros system health
 # Memory operations
 zouroboros memory store --entity user --key preference --value "dark mode"
 zouroboros memory search "technology preferences"
-
-# OmniRoute routing
-zouroboros omniroute resolve "Build a React component"
 
 # Workflow tools
 zouroboros workflow interview --topic "Design a database schema"
@@ -104,7 +96,6 @@ zouroboros tui
 
 ```typescript
 import { Memory } from 'zouroboros-memory';
-import { OmniRouteResolver } from 'zouroboros-omniroute';
 import { SwarmOrchestrator } from 'zouroboros-swarm';
 
 // Initialize memory
@@ -122,11 +113,6 @@ await memory.store({
 // Search memory
 const results = await memory.search({ query: 'programming languages' });
 
-// Resolve optimal model for a task
-const resolver = new OmniRouteResolver();
-const combo = await resolver.resolve('Build a REST API');
-console.log(`Use combo: ${combo.resolvedCombo}`);
-
 // Run a swarm campaign
 const orchestrator = new SwarmOrchestrator();
 const results = await orchestrator.run({
@@ -143,7 +129,6 @@ const results = await orchestrator.run({
 |---------|-------------|-------------|
 | `zouroboros-core` | Types, config, utilities | - |
 | `zouroboros-memory` | Hybrid SQLite + vector memory | `zouroboros-memory` |
-| `zouroboros-omniroute` | Model routing & complexity analysis | `zouroboros-omniroute` |
 | `zouroboros-workflow` | Interview, eval, unstuck, autoloop | `zouroboros-*` |
 | `zouroboros-personas` | Persona creation framework | `zouroboros-personas` |
 | `zouroboros-swarm` | Multi-agent orchestration | `zouroboros-swarm` |
@@ -167,10 +152,10 @@ const results = await orchestrator.run({
 └──────────────┘    └──────────────┘    └──────────────┘
         │                     │                     │
         ▼                     ▼                     ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  OmniRoute   │    │   Personas   │    │  Self-Heal   │
-│   Resolver   │    │  Framework   │    │   System     │
-└──────────────┘    └──────────────┘    └──────────────┘
+        ┌──────────────┐             ┌──────────────┐
+        │   Personas   │             │  Self-Heal   │
+        │  Framework   │             │   System     │
+        └──────────────┘             └──────────────┘
 ```
 
 ## Documentation
@@ -200,10 +185,6 @@ defaults:
   memory:
     dbPath: ~/.zo/memory/shared-facts.db
     embeddingModel: nomic-embed-text
-  
-  omniroute:
-    url: http://localhost:20128
-    apiKey: ${OMNIROUTE_API_KEY}
   
   swarm:
     localConcurrency: 8
