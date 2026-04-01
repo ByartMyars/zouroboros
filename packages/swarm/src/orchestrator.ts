@@ -20,7 +20,6 @@ const DEFAULT_CONFIG: SwarmConfig = {
   notifyOnComplete: 'none',
   routingStrategy: 'balanced',
   useSixSignalRouting: true,
-  omniRouteEnabled: false,
   stagnationEnabled: true,
 };
 

@@ -31,20 +31,6 @@ services:
     profiles:
       - with-ollama
 
-  # Optional: OmniRoute
-  omniroute:
-    image: marlandoj/omniroute:latest
-    container_name: zouroboros-omniroute
-    ports:
-      - "20128:20128"
-    environment:
-      - OMNIROUTE_API_KEY=${OMNIROUTE_API_KEY}
-    networks:
-      - zouroboros-network
-    restart: unless-stopped
-    profiles:
-      - with-omniroute
-
 volumes:
   zouroboros-data:
   zouroboros-logs:

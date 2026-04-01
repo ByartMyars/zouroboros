@@ -6,9 +6,8 @@
 
 A simple project that demonstrates:
 1. **Memory** - Store and retrieve facts
-2. **OmniRoute** - Route tasks to optimal models
-3. **Workflow** - Use spec-first development
-4. **Swarm** - Run a simple multi-agent campaign
+2. **Workflow** - Use spec-first development
+3. **Swarm** - Run a simple multi-agent campaign
 
 ## Step 1: Initialize Your Project
 
@@ -28,7 +27,6 @@ Expected output:
 ```
 ✅ Core types loaded
 ✅ Memory system ready
-✅ OmniRoute configured
 ✅ Workflow tools available
 ✅ Swarm orchestrator ready
 ✅ All systems healthy
@@ -64,27 +62,7 @@ Output:
    Category: preference | Decay: permanent
 ```
 
-## Step 3: Route a Task with OmniRoute
-
-Check which model combo is best for a task:
-
-```bash
-zouroboros omniroute resolve "Build a REST API in TypeScript"
-```
-
-Output:
-```json
-{
-  "complexity": {
-    "tier": "moderate",
-    "score": 0.64,
-    "inferredTaskType": "coding"
-  },
-  "resolvedCombo": "swarm-mid"
-}
-```
-
-## Step 4: Run a Spec-First Interview
+## Step 3: Run a Spec-First Interview
 
 Before building anything, clarify requirements:
 
@@ -104,7 +82,7 @@ zouroboros workflow interview seed \
   --output ./seed.yaml
 ```
 
-## Step 5: Run a Simple Swarm Campaign
+## Step 4: Run a Simple Swarm Campaign
 
 Create a tasks file `campaign.json`:
 
@@ -143,7 +121,7 @@ zouroboros swarm run \
   --output ./results
 ```
 
-## Step 6: Check System Health
+## Step 5: Check System Health
 
 Run a health check on your Zouroboros installation:
 
@@ -172,7 +150,6 @@ This generates a scorecard showing:
 | `zouroboros doctor` | Check system health |
 | `zouroboros memory store` | Save a fact |
 | `zouroboros memory search` | Find facts |
-| `zouroboros omniroute resolve` | Get optimal model |
 | `zouroboros workflow interview` | Run spec-first interview |
 | `zouroboros swarm run` | Execute campaign |
 | `zouroboros heal introspect` | Health scorecard |

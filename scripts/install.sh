@@ -91,10 +91,6 @@ memory:
   embeddingModel: nomic-embed-text
   ollamaUrl: http://localhost:11434
 
-omniroute:
-  url: http://localhost:20128
-  apiKey: ${OMNIROUTE_API_KEY}
-
 swarm:
   localConcurrency: 8
   timeoutSeconds: 600

@@ -54,28 +54,9 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 
 ---
 
-## Phase 2: OmniRoute Integration ✅ (Complete)
+## Phase 2: ~~OmniRoute Integration~~ (Removed)
 
-**Goal:** Integrate OmniRoute tier resolver and routing.
-
-### Deliverables
-- [x] `zouroboros-omniroute` package
-- [x] Complexity analysis algorithm (9 signals)
-- [x] Combo recommendation engine
-- [x] Task type detection (keyword, synonym, contextual)
-- [x] Domain pattern recognition
-- [x] Constraint handling (budget, latency, quality, speed)
-- [x] Static fallback when OmniRoute unavailable
-- [x] OmniRouteClient for API communication
-- [x] CLI with JSON output
-- [x] Environment configuration
-
-### Files Created
-- `packages/omniroute/src/types.ts` - Type definitions
-- `packages/omniroute/src/complexity.ts` - Complexity analysis
-- `packages/omniroute/src/client.ts` - OmniRoute API client
-- `packages/omniroute/src/resolver.ts` - Main resolver
-- `packages/omniroute/src/cli.ts` - Command-line interface
+> OmniRoute has been removed from the Zouroboros ecosystem. The `zouroboros-omniroute` package and all related integrations have been deprecated.
 
 ---
 
@@ -204,7 +185,6 @@ This roadmap tracks the consolidation of all Zouroboros enhancements into a unif
 - [x] `persona` - Create and list personas
 - [x] `workflow` - Interview, evaluate, unstuck, autoloop
 - [x] `heal` - Introspect, prescribe, evolve
-- [x] `omniroute` - Resolve tasks, check status
 - [x] `tui` - Launch terminal dashboard
 - [x] `zouroboros-tui` package
 - [x] Visual dashboard with blessed
@@ -225,7 +205,6 @@ zouroboros workflow evaluate # Run three-stage eval
 zouroboros heal introspect   # Run health check
 zouroboros heal prescribe    # Generate improvement plan
 zouroboros heal evolve       # Execute improvement
-zouroboros omniroute resolve # Get optimal model combo
 zouroboros tui               # Launch terminal UI
 ```
 
@@ -292,12 +271,11 @@ docker/
 **Repository:** https://github.com/marlandoj/zouroboros
 **Status:** Private, production-ready
 
-### Completed Packages (9)
+### Completed Packages (8)
 | Package | Status | Description |
 |---------|--------|-------------|
 | zouroboros-core | ✅ | Types, config, utilities |
 | zouroboros-memory | ✅ | SQLite + vector memory |
-| zouroboros-omniroute | ✅ | Model routing |
 | zouroboros-workflow | ✅ | Interview, eval, unstuck, autoloop |
 | zouroboros-personas | ✅ | Persona creation framework |
 | zouroboros-swarm | ✅ | Multi-agent orchestration |

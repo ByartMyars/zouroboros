@@ -60,8 +60,6 @@ Zouroboros is designed as a modular, self-enhancing AI infrastructure platform.
 - **6-Signal Routing**: Complexity, context, cost, confidence, continuity, capability
 - **DAG Streaming**: Dependency-aware parallel execution
 - **Executor Bridges**: Unified interface to local agents
-- **OmniRoute Integration**: Fallback to cloud models
-
 ### Personas (`zouroboros-personas`)
 - **8-Phase Creation**: Planning → Deployment
 - **Template System**: Reusable persona patterns

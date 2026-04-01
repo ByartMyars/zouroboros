@@ -5,7 +5,7 @@
  * and enables fallback paths when dependencies are unavailable.
  */
 
-export type SubsystemName = 'memory' | 'ollama' | 'omniroute' | 'swarm' | 'selfheal';
+export type SubsystemName = 'memory' | 'ollama' | 'swarm' | 'selfheal';
 
 export type SubsystemStatus = 'healthy' | 'degraded' | 'unavailable';
 
@@ -216,7 +216,6 @@ function getDegradedCapabilities(name: SubsystemName): string[] {
   const map: Record<SubsystemName, string[]> = {
     memory: ['fact storage', 'episodic memory', 'memory search'],
     ollama: ['vector search', 'semantic similarity', 'HyDE expansion'],
-    omniroute: ['intelligent routing', 'complexity analysis'],
     swarm: ['multi-agent orchestration', 'DAG execution'],
     selfheal: ['auto-introspection', 'self-improvement'],
   };

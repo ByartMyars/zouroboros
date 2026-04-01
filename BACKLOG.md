@@ -255,12 +255,6 @@ Systematic token optimization with proactive checkpointing:
 
 ### Swarm Orchestrator
 
-> **Note (2026-03-29)**: Tier-resolver v2.1.0 has been released with 84% accuracy on 50 test cases. 
-> Update dependency reference: `omniroute-tier-resolver@feature/v2-improvements-sessions-1-2`
-> 
-> Key improvements: threshold recalibration, 9 targeted tier overrides, auto-tune pipeline, 50-case test suite.
-> Known: 8 boundary-case failures documented in tier-resolver PR.
-
 ## Swarm Orchestrator Enhancements
 - [x] **Streaming capture v2** - Real-time output streaming with backpressure (2026-04-01)
 - [x] **Token optimizer integration** - Hierarchical memory strategies per-task (2026-04-01)
@@ -369,7 +363,7 @@ Failure → classify error type → flag skill for review → update instruction
 **Status**: Proposed → Needs Evaluation  
 **Impact**: Medium — prevents recursive routing loops
 
-Guard against self-referential routing (e.g., OmniRoute → Zo → OmniRoute):
+Guard against self-referential routing loops:
 1. Request origin tracking
 2. Loop depth limit
 3. Cyclic call detection
@@ -453,7 +447,6 @@ Prevent excessive embedding generation:
 ### Phase 1-8 Deliverables (2026-03-27)
 - ✅ Core types and configuration system
 - ✅ SQLite + vector memory with embeddings
-- ✅ OmniRoute complexity analysis and routing
 - ✅ Spec-first interview and evaluation pipeline
 - ✅ Unstuck lateral thinking (5 personas)
 - ✅ Autoloop optimization engine
