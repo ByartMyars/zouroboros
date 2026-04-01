@@ -217,7 +217,7 @@ export function loadCheckpoint(checkpointId: string): BudgetCheckpoint | null {
 export function listCheckpoints(swarmId?: string, limit = 10): BudgetCheckpoint[] {
   const db = getDb();
   let query = "SELECT * FROM budget_checkpoints";
-  const args: unknown[] = [];
+  const args: (string | number | null)[] = [];
   if (swarmId) { query += " WHERE swarm_id = ?"; args.push(swarmId); }
   query += " ORDER BY created_at DESC LIMIT ?"; args.push(limit);
   return (db.prepare(query).all(...args) as Array<Record<string, unknown>>).map((row) => {

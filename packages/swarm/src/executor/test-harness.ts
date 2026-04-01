@@ -12,7 +12,7 @@
 
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
-import type { ExecutorRegistry } from "../types/executor";
+import type { ExecutorRegistry } from "./types/executor";
 
 const WORKSPACE = process.env.SWARM_WORKSPACE || "/home/workspace";
 const REGISTRY_PATH =

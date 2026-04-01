@@ -124,7 +124,7 @@ export async function detectNewConflict(db: Database, entity: string, key: strin
     if (isContradict) {
       const nowSec = Math.floor(Date.now() / 1000);
       const cid = randomUUID();
-      db.prepare(`INSERT OR IGNORE INTO fact_conflicts (id, fact_id, conflicting_fact_id, conflict_type, resolution, created_at) VALUES (?, ?, ?, 'semantic', 'pending', ?)`).run(cid, ef.id, randomUUID(), nowSec);
+      db.prepare(`INSERT OR IGNORE INTO fact_conflicts (id, fact_id, conflicting_fact_id, conflict_type, resolution, created_at) VALUES (?, ?, ?, 'semantic', 'pending', ?)`).run(cid, ef.id as string, randomUUID(), nowSec);
       return { id: cid, factId: ef.id as string, conflictingFactId: ef.id as string, conflictType: "semantic", resolution: "pending", fact1Value: ef.value as string, fact2Value: newValue, createdAt: nowSec };
     }
   }
