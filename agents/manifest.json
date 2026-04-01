@@ -1,0 +1,115 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": "1.0.0",
+  "description": "Declarative specs for Zouroboros scheduled agents on Zo Computer",
+  "timezone": "America/Phoenix",
+  "pipeline_order": [
+    "memory-embedding-backfill",
+    "memory-capture",
+    "unified-decay",
+    "self-enhancement-summary",
+    "vault-indexer"
+  ],
+  "agents": {
+    "memory-embedding-backfill": {
+      "zo_id": "fd6262f5-dd83-457b-b169-1bd3596a6052",
+      "title": "Memory Embedding Backfill",
+      "package": "packages/memory",
+      "persona": "alaric",
+      "model": "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+      "schedule": {
+        "frequency": "daily",
+        "hour": 3,
+        "minute": 15,
+        "rrule": "DTSTART;TZID=America/Phoenix:20260221T071818\nRRULE:FREQ=DAILY;BYHOUR=3;BYMINUTE=15"
+      },
+      "depends_on": [],
+      "commands": [
+        "curl -s http://localhost:11434/api/generate -d '{\"model\":\"qwen2.5:1.5b\",\"prompt\":\"ping\",\"stream\":false,\"keep_alive\":\"24h\",\"options\":{\"num_predict\":1}}' > /dev/null",
+        "bun Skills/zo-memory-system/scripts/memory.ts index",
+        "bun Skills/zo-memory-system/scripts/memory.ts stats"
+      ],
+      "instruction": "Run a memory embedding backfill to keep hybrid search fresh, and keep the Ollama gate model warm.\n\nSteps:\n\n1. Keep the memory gate model warm by pinging Ollama:\n`curl -s http://localhost:11434/api/generate -d '{\"model\":\"qwen2.5:1.5b\",\"prompt\":\"ping\",\"stream\":false,\"keep_alive\":\"24h\",\"options\":{\"num_predict\":1}}' > /dev/null`\n\n2. In /home/workspace, run:\n`bun Skills/zo-memory-system/scripts/memory.ts index`\n\n3. Then run:\n`bun Skills/zo-memory-system/scripts/memory.ts stats`\n\nIf index or stats fails, report the error. Otherwise report the stats output and confirm the gate model is warm."
+    },
+
+    "memory-capture": {
+      "zo_id": "2e677c43-4ba0-41f5-9e2c-da1fe773c57b",
+      "title": "Memory Capture Daily Report",
+      "package": "packages/memory",
+      "persona": "memory-manager",
+      "model": "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+      "schedule": {
+        "frequency": "daily",
+        "hour": 4,
+        "minute": 0,
+        "rrule": "DTSTART;TZID=America/Phoenix:20260307T094840\nRRULE:FREQ=DAILY;BYHOUR=4;BYMINUTE=0"
+      },
+      "depends_on": ["memory-embedding-backfill"],
+      "commands": [
+        "bun /home/workspace/Skills/zo-memory-system/scripts/conversation-capture.ts --since 24h",
+        "bun /home/workspace/Skills/zo-memory-system/scripts/memory.ts stats",
+        "bun /home/workspace/Skills/zo-memory-system/scripts/memory.ts episodes --since '24 hours ago'",
+        "bun /home/workspace/Skills/zo-memory-system/scripts/conversation-capture.ts --stats"
+      ],
+      "instruction": "You are the Memory Capture & Maintenance agent. Run the daily memory capture and maintenance pipeline.\n\nSteps\n\n1. Capture conversation artifacts (last 24h)\nRun: `bun /home/workspace/Skills/zo-memory-system/scripts/conversation-capture.ts --since 24h`\nThis scans /home/.z/workspaces/ for new .md, .json, .txt files from recent conversations, extracts structured facts using Ollama (qwen2.5:7b), and stores them in the memory database with embeddings.\n\n2. Check memory stats\nRun: `bun /home/workspace/Skills/zo-memory-system/scripts/memory.ts stats`\n\n3. Check recent episodes\nRun: `bun /home/workspace/Skills/zo-memory-system/scripts/memory.ts episodes --since \"24 hours ago\"`\n\n4. Check conversation capture stats\nRun: `bun /home/workspace/Skills/zo-memory-system/scripts/conversation-capture.ts --stats`\n\nReport Format: Send a summary email with bullet points covering: new artifacts processed, facts extracted/stored, contradictions detected, current DB stats (total facts, episodes, procedures), any errors. Subject line: \"Memory Capture Daily Report - {date}\". Keep concise."
+    },
+
+    "unified-decay": {
+      "zo_id": "ce3e493a-0d75-489b-b060-7518678fbdc0",
+      "title": "Unified Decay System",
+      "package": "packages/memory",
+      "persona": null,
+      "model": "byok:691a1f36-12f1-4b59-9665-069495d921a8",
+      "schedule": {
+        "frequency": "daily",
+        "hour": 5,
+        "minute": 0,
+        "rrule": "DTSTART;TZID=America/Phoenix:20260325T194106\nRRULE:FREQ=DAILY;BYHOUR=5;BYMINUTE=0"
+      },
+      "depends_on": ["memory-capture"],
+      "commands": [
+        "cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts run",
+        "cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts auto-resolve-stale",
+        "cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts stats"
+      ],
+      "instruction": "You are executing the Zouroboros Unified Decay System.\n\nRun the following commands in order:\n\n1. Run unified decay calculation:\n`cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts run`\n\n2. Run auto-resolve stale open loops (resolves stale loops with no activity for 30+ days, skips living projects and graph-critical loops):\n`cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts auto-resolve-stale`\n\n3. Show unified decay statistics:\n`cd /home/workspace/Skills/zo-memory-system && bun scripts/unified-decay.ts stats`\n\nReport the results of each step. If any step fails, continue with the next steps and note the failure."
+    },
+
+    "self-enhancement-summary": {
+      "zo_id": "1fbbd615-8340-4800-a2fa-6aa6114a7ce5",
+      "title": "Daily Self-Enhancement Summary",
+      "package": "packages/selfheal",
+      "persona": "zouroboros-engineer",
+      "model": "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+      "schedule": {
+        "frequency": "daily",
+        "hour": 5,
+        "minute": 15,
+        "rrule": "DTSTART;TZID=America/Phoenix:20260322T162045\nRRULE:FREQ=DAILY;BYHOUR=5;BYMINUTE=15"
+      },
+      "depends_on": ["unified-decay"],
+      "outputs": ["/dev/shm/zouroboros-status-{date}.md"],
+      "delivery": "email:marlandoj@gmail.com",
+      "instruction": "You are executing the Zouroboros Self-Enhancement & Knowledge Report -- the master synthesis run at 5:15 AM, 15 minutes after the Unified Decay agent completes. This consolidates all learnings from the past 24 hours into a single authoritative report.\n\n== STEP 1: READ THE DECAY REPORT (written at 5:00 AM) ==\nDATE=$(TZ=America/Phoenix date +%Y-%m-%d)\nDECAY_REPORT=$(ls /dev/shm/decay-meta-review-${DATE}.txt 2>/dev/null)\nIf found, cat it; otherwise note \"No decay report found\".\n\n== STEP 2: FETCH LIVE SWARM + MEMORY STATS ==\n`curl -s \"https://marlandoj.zo.space/api/swarm-stats?token=<redacted>\"`\n\n== STEP 3: SYNTHESIZE INTO STATUS REPORT ==\nWrite /dev/shm/zouroboros-status-YYYY-MM-DD.md with sections: System Health (episodes, success/failure rates), Memory Health (facts total, embedding coverage, decay class distribution, notable new facts), Meta-Lessons (last 7 days from shared-facts.db), Procedure Performance (versions, success/fail counts, flag unproven v2+ or high-failure procedures), Open Loop Review (count by priority band, stale loops 14+ days, newly created), Recommended Actions (max 3 items, P0/P1/P2 priority).\n\n== STEP 4: STORE HEALTH SNAPSHOT TO SQLITE ==\nRecord a health snapshot fact and any new meta-lessons discovered.\n\n== STEP 5: EMAIL REPORT ==\nSend to marlandoj@gmail.com with subject \"Zouroboros Status -- YYYY-MM-DD\". Use HTML/markdown rich formatting with status indicators and numbered priority actions."
+    },
+
+    "vault-indexer": {
+      "zo_id": "c67f7d00-2230-4d65-aefe-cd2805a90cd6",
+      "title": "Vault Indexer",
+      "package": "packages/memory",
+      "persona": "memory-manager",
+      "model": "byok:691a1f36-12f1-4b59-9665-069495d921a8",
+      "schedule": {
+        "frequency": "hourly",
+        "interval": 1,
+        "rrule": "DTSTART;TZID=America/Phoenix:20260319T170806\nRRULE:FREQ=HOURLY;INTERVAL=1"
+      },
+      "depends_on": [],
+      "log": "/dev/shm/vault-index.log",
+      "commands": [
+        "bun /home/workspace/Skills/zo-memory-system/scripts/vault-index.ts"
+      ],
+      "instruction": "Vault Indexer -- Scheduled hourly index of the Zo vault knowledge graph.\n\nBefore running: if /dev/shm/vault-index.log exceeds 1MB, keep only the last 500 lines:\n`tail -500 /dev/shm/vault-index.log > /dev/shm/vault-index.log.tmp && mv /dev/shm/vault-index.log.tmp /dev/shm/vault-index.log`\n\nRun the vault indexer to update the knowledge graph:\n1. Execute: `bun /home/workspace/Skills/zo-memory-system/scripts/vault-index.ts 2>&1 | tee -a /dev/shm/vault-index.log`\n2. If the index shows any errors, report them briefly\n3. Otherwise just confirm: \"Vault index complete: X files, Y links\""
+    }
+  }
+}

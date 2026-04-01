@@ -2,7 +2,7 @@
  * Doctor utility - Health check for Zouroboros components
  */
 
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { execSync, spawnSync } from 'child_process';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
@@ -186,6 +186,65 @@ CREATE INDEX IF NOT EXISTS idx_open_loops_entity ON open_loops(entity, status);
     checks.push({ name: 'Git', status: 'ok', message: 'Available' });
   } catch {
     checks.push({ name: 'Git', status: 'error', message: 'Not found. Required for autoloop.' });
+  }
+
+  // Check 6: Scheduled Agents (from agents/manifest.json)
+  const monorepoRoot = join(__dirname, '..', '..', '..');
+  const manifestPath = join(monorepoRoot, 'agents', 'manifest.json');
+  if (existsSync(manifestPath)) {
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+      const agentEntries = Object.entries(manifest.agents || {}) as [string, { zo_id: string; title: string }][];
+      let registered = 0;
+      let missing = 0;
+      const missingNames: string[] = [];
+
+      for (const [slug, spec] of agentEntries) {
+        try {
+          const result = execSync(
+            `curl -sf -H "Authorization: Bearer $ZO_CLIENT_IDENTITY_TOKEN" https://api.zo.computer/zo/agents/${spec.zo_id}`,
+            { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+          );
+          const agent = JSON.parse(result);
+          if (agent && (agent.id || agent.agent_id)) {
+            registered++;
+          } else {
+            missing++;
+            missingNames.push(spec.title);
+          }
+        } catch {
+          // If API call fails, try listing all agents and matching by ID
+          missing++;
+          missingNames.push(spec.title);
+        }
+      }
+
+      if (missing === 0) {
+        checks.push({
+          name: 'Scheduled Agents',
+          status: 'ok',
+          message: `${registered}/${agentEntries.length} registered on Zo platform`
+        });
+      } else {
+        checks.push({
+          name: 'Scheduled Agents',
+          status: 'warning',
+          message: `${registered}/${agentEntries.length} found. Missing: ${missingNames.join(', ')}`
+        });
+      }
+    } catch (err) {
+      checks.push({
+        name: 'Scheduled Agents',
+        status: 'warning',
+        message: 'Could not parse agents/manifest.json'
+      });
+    }
+  } else {
+    checks.push({
+      name: 'Scheduled Agents',
+      status: 'warning',
+      message: 'agents/manifest.json not found — agent verification skipped'
+    });
   }
 
   // Print results
