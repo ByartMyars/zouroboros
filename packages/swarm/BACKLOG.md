@@ -1,5 +1,7 @@
 # Swarm Orchestrator Enhancement Backlog
 
+> **NOTE**: Active backlog has been consolidated into the monorepo root [BACKLOG.md](../../BACKLOG.md). Completed items are in [CHANGELOG.md](../../CHANGELOG.md). This file is retained for historical reference.
+
 > Strategic backlog for zo-swarm-orchestrator evolution. Items are prioritized by impact, effort, and alignment with the Zouroboros local-first, learning-oriented philosophy.
 
 ---
