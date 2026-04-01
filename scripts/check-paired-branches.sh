@@ -25,7 +25,6 @@ ALL_REPOS=(
     "zo-persona-creator"
     "zo-vault"
     "zo-code-server-setup"
-    "omniroute-tier-resolver"
 )
 
 # Output formatting

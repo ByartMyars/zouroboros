@@ -76,7 +76,6 @@ ZO_MEMORY_DB=/home/workspace/.zo/memory/shared-facts.db
 # Optional - for cloud features
 OPENAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
-OMNIROUTE_API_KEY=your_key_here
 ```
 
 ### Zo Computer Integration

@@ -16,7 +16,6 @@
     "chalk": "^5.3.0",
     "zouroboros-core": "workspace:*",
     "zouroboros-memory": "workspace:*",
-    "zouroboros-omniroute": "workspace:*",
     "zouroboros-swarm": "workspace:*",
     "zouroboros-personas": "workspace:*",
     "zouroboros-selfheal": "workspace:*",

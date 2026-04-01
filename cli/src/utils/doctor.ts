@@ -64,20 +64,7 @@ export async function runDoctor(options: { fix?: boolean } = {}): Promise<boolea
     });
   }
 
-  // Check 4: OmniRoute (optional)
-  try {
-    execSync('curl -s http://localhost:20128/health > /dev/null', { timeout: 5000 });
-    checks.push({ name: 'OmniRoute', status: 'ok', message: 'Running on localhost:20128' });
-  } catch {
-    checks.push({ 
-      name: 'OmniRoute', 
-      status: 'warning', 
-      message: 'Not running. Will use static routing.',
-      fixable: false 
-    });
-  }
-
-  // Check 5: Swarm executors
+  // Check 4: Swarm executors
   const executors = ['claude-code', 'codex', 'gemini', 'hermes'];
   const availableExecutors: string[] = [];
   

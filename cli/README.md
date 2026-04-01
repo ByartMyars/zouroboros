@@ -39,7 +39,6 @@ zouroboros tui
 | `persona` | Persona management |
 | `workflow` | Interview, evaluate, autoloop |
 | `heal` | Self-healing system |
-| `omniroute` | OmniRoute integration |
 | `tui` | Launch dashboard |
 
 ## Examples
@@ -59,9 +58,6 @@ zouroboros persona create "Health Coach" --domain healthcare --interactive
 
 # Run introspection
 zouroboros heal introspect --store
-
-# Resolve task to optimal model
-zouroboros omniroute resolve "Fix authentication bug"
 
 # Launch TUI dashboard
 zouroboros tui

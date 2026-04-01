@@ -32,9 +32,6 @@ importers:
       zouroboros-memory:
         specifier: workspace:*
         version: link:../packages/memory
-      zouroboros-omniroute:
-        specifier: workspace:*
-        version: link:../packages/omniroute
       zouroboros-personas:
         specifier: workspace:*
         version: link:../packages/personas
@@ -89,19 +86,6 @@ importers:
         version: 1.3.11
       typescript:
         specifier: ^5.4.0
-        version: 5.9.3
-
-  packages/omniroute:
-    dependencies:
-      zouroboros-core:
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.37
-      typescript:
-        specifier: ^5.0.0
         version: 5.9.3
 
   packages/personas:

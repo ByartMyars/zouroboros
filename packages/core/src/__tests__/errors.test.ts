@@ -163,13 +163,13 @@ describe('resetHealth', () => {
 
 describe('configureCircuitBreaker', () => {
   test('sets custom threshold', () => {
-    configureCircuitBreaker('omniroute', { opensAt: 10 });
-    expect(getHealth('omniroute').circuitOpensAt).toBe(10);
+    configureCircuitBreaker('swarm', { opensAt: 10 });
+    expect(getHealth('swarm').circuitOpensAt).toBe(10);
   });
 
   test('sets custom reset interval', () => {
-    configureCircuitBreaker('omniroute', { resetMs: 5000 });
-    expect(getHealth('omniroute').circuitResetMs).toBe(5000);
+    configureCircuitBreaker('swarm', { resetMs: 5000 });
+    expect(getHealth('swarm').circuitResetMs).toBe(5000);
   });
 });
 

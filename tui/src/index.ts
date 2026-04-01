@@ -39,7 +39,6 @@ const statusBox = grid.set(1, 0, 3, 4, blessed.box, {
   label: ' System Status ',
   content: `
   Memory:    {green-fg}●{/green-fg} Online
-  OmniRoute: {green-fg}●{/green-fg} Online
   Swarm:     {green-fg}●{/green-fg} Ready
   Self-Heal: {green-fg}●{/green-fg} Active
   `,

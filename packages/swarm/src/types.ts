@@ -50,9 +50,6 @@ export interface SwarmConfig {
   notifyOnComplete: NotificationChannel;
   routingStrategy: RoutingStrategy;
   useSixSignalRouting: boolean;
-  omniRouteEnabled: boolean;
-  omniRouteUrl?: string;
-  omniRouteApiKey?: string;
   stagnationEnabled: boolean;
 }
 
