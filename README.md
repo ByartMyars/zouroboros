@@ -150,7 +150,7 @@ const results = await orchestrator.run({
 - **[Quick Start](./docs/getting-started/quickstart.md)** — Build your first project
 - **[Architecture Overview](./docs/architecture/overview.md)** — System design
 - **[CLI Reference](./docs/reference/cli-commands.md)** — Complete command reference
-- **[API Documentation](./docs/reference/api.md)** — Programmatic usage
+- **[CLI Commands Reference](./docs/reference/cli-commands.md)** — Programmatic usage and CLI reference
 
 ## Examples
 
@@ -158,8 +158,8 @@ See the `examples/` directory for complete projects:
 
 - `basic-memory/` — Memory system fundamentals
 - `swarm-campaign/` — Multi-agent orchestration
-- `persona-creation/` — Building custom personas
-- `self-healing/` — Autonomous improvement
+- `persona-creation/` — Building custom personas *(coming soon)*
+- `self-healing/` — Autonomous improvement *(coming soon)*
 
 ## Configuration
 
