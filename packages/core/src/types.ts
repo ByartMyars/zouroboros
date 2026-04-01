@@ -24,7 +24,6 @@ export interface ZouroborosConfig {
   memory: MemoryConfig;
   swarm: SwarmConfig;
   personas: PersonasConfig;
-  omniroute: OmniRouteConfig;
   selfheal: SelfHealConfig;
 }
 
@@ -78,13 +77,6 @@ export interface PersonasConfig {
   autoCreateHeartbeat: boolean;
 }
 
-export interface OmniRouteConfig {
-  enabled: boolean;
-  url: string;
-  apiKey?: string;
-  defaultLatency: 'fast' | 'balanced' | 'quality';
-  budgetConstraint?: number; // USD per 1M tokens
-}
 
 export interface SelfHealConfig {
   enabled: boolean;
@@ -92,14 +84,7 @@ export interface SelfHealConfig {
   autoPrescribe: boolean;
   governorEnabled: boolean;
   minHealthScore: number;
-  metrics: {
-    memoryRecall: MetricThreshold;
-    graphConnectivity: MetricThreshold;
-    routingAccuracy: MetricThreshold;
-    evalCalibration: MetricThreshold;
-    procedureFreshness: MetricThreshold;
-    episodeVelocity: MetricThreshold;
-  };
+  metrics: Record<string, MetricThreshold>;
 }
 
 export interface MetricThreshold {
@@ -116,7 +101,7 @@ export interface MetricThreshold {
 export interface MemoryEntry {
   id: UUID;
   entity: string;
-  key: string;
+  key: string | null;
   value: string;
   decay: DecayClass;
   createdAt: Timestamp;
@@ -129,11 +114,18 @@ export interface EpisodicMemory {
   id: UUID;
   conversationId: string;
   summary: string;
-  outcome: 'success' | 'failure' | 'partial';
+  outcome: 'success' | 'failure' | 'partial' | 'resolved' | 'ongoing';
   entities: string[];
   tags: string[];
   createdAt: Timestamp;
   tokenCount?: number;
+}
+
+export interface TemporalQuery {
+  since?: string;
+  until?: string;
+  outcome?: string;
+  limit?: number;
 }
 
 export interface ProceduralMemory {
@@ -164,7 +156,7 @@ export interface InteractionRecord {
 export interface MemorySearchResult {
   entry: MemoryEntry;
   score: number;
-  matchType: 'exact' | 'semantic' | 'graph';
+  matchType: 'exact' | 'semantic' | 'graph' | 'hybrid';
 }
 
 export interface GraphNode {
@@ -201,8 +193,7 @@ export interface SwarmTask {
   name: string;
   description: string;
   dependencies: string[]; // task IDs
-  executor: 'local' | 'omniroute';
-  combo?: string; // for omniroute
+  executor: 'local';
   localExecutor?: string; // for local: claude-code, hermes, gemini, codex
   prompt: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
@@ -244,7 +235,7 @@ export interface ExecutorConfig {
 }
 
 // ============================================================================
-// OmniRoute Types
+// Combo Routing Types
 // ============================================================================
 
 export interface ComboRecommendation {

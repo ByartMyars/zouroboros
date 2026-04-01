@@ -6,13 +6,16 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "zouroboros-memory": "./dist/cli.js"
+    "zouroboros-memory": "./dist/cli.js",
+    "zouroboros-memory-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "bun test",
-    "cli": "bun ./src/cli.ts"
+    "test": "bun test src/",
+    "test:coverage": "bun test --coverage src/",
+    "cli": "bun ./src/cli.ts",
+    "mcp": "bun ./src/mcp-server.ts"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"

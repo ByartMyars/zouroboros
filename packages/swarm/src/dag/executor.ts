@@ -1,17 +1,23 @@
 /**
  * DAG execution engine
- * 
+ *
  * Executes tasks in dependency order using streaming or wave-based modes.
+ * Integrates CascadeManager for failure handling and ContextSharingManager
+ * for passing context between dependent tasks.
  */
 
 import type { Task, TaskResult, SwarmConfig } from '../types.js';
 import type { BridgeExecutor } from '../executor/bridge.js';
+import type { CascadeManager } from '../cascade/manager.js';
+import type { ContextSharingManager } from '../context/sharing.js';
 
 export type ExecutionMode = 'streaming' | 'waves';
 
 export interface ExecutionContext {
   config: SwarmConfig;
   getExecutor: (executorId: string) => BridgeExecutor | undefined;
+  cascadeManager?: CascadeManager;
+  contextManager?: ContextSharingManager;
 }
 
 export interface ExecutionProgress {
@@ -33,6 +39,11 @@ export class DAGExecutor {
     this.results = new Map();
     this.inProgress = new Set();
     this.context = context;
+
+    // Build cascade dependency graph if manager is provided
+    if (context.cascadeManager) {
+      context.cascadeManager.buildDependencyGraph(tasks);
+    }
   }
 
   async execute(mode: ExecutionMode): Promise<TaskResult[]> {
@@ -45,35 +56,35 @@ export class DAGExecutor {
 
   private async executeStreaming(): Promise<TaskResult[]> {
     const pending = new Set(this.tasks.keys());
-    const executing: Promise<void>[] = [];
+    const promiseToTask = new Map<Promise<void>, string>();
     const maxConcurrency = this.context.config.localConcurrency;
 
     const tryExecuteTask = async (taskId: string): Promise<void> => {
       const task = this.tasks.get(taskId);
       if (!task) return;
 
-      // Check dependencies
-      const depsSatisfied = (task.dependsOn || []).every(depId => 
-        this.results.has(depId) && this.results.get(depId)!.success
-      );
-
-      if (!depsSatisfied) {
-        // Dependencies not ready, skip for now
-        return;
-      }
-
-      // Check if already completed
-      if (this.results.has(taskId)) {
+      // Skip tasks that cascade manager has marked
+      if (this.context.cascadeManager?.isSkipped(taskId)) {
+        this.results.set(taskId, {
+          task,
+          success: false,
+          error: 'Skipped due to upstream failure (cascade)',
+          durationMs: 0,
+          retries: 0,
+        });
         pending.delete(taskId);
         return;
       }
 
-      // Check if already in progress
-      if (this.inProgress.has(taskId)) {
-        return;
-      }
+      // Check dependencies
+      const depsSatisfied = (task.dependsOn || []).every(depId =>
+        this.results.has(depId) && this.results.get(depId)!.success
+      );
 
-      // Execute the task
+      if (!depsSatisfied) return;
+      if (this.results.has(taskId)) { pending.delete(taskId); return; }
+      if (this.inProgress.has(taskId)) return;
+
       this.inProgress.add(taskId);
       pending.delete(taskId);
 
@@ -81,24 +92,48 @@ export class DAGExecutor {
         const executor = this.context.getExecutor(task.executor || 'claude-code');
         if (!executor) {
           this.results.set(taskId, {
-            task,
-            success: false,
+            task, success: false,
             error: `Executor ${task.executor} not found`,
-            durationMs: 0,
-            retries: 0,
+            durationMs: 0, retries: 0,
           });
           return;
         }
 
+        // Build task context from dependencies if context manager is available
+        let taskContext: Record<string, unknown> | undefined;
+        if (this.context.contextManager) {
+          taskContext = this.context.contextManager.buildTaskContext(taskId, task.dependsOn || []);
+        }
+
         const result = await executor.execute(task, {
           timeoutMs: (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000,
+          ...(taskContext ? { context: taskContext } : {}),
         });
 
         this.results.set(taskId, result);
 
-        // Notify if configured
-        if (this.context.config.notifyOnComplete !== 'none' && !result.success) {
-          console.error(`Task ${taskId} failed: ${result.error}`);
+        if (result.success) {
+          // Record output for downstream tasks
+          this.context.contextManager?.recordTaskOutput(
+            taskId, result.output || '', true
+          );
+        } else {
+          // Handle failure through cascade manager
+          if (this.context.cascadeManager) {
+            this.context.cascadeManager.handleFailure(taskId, result.error || 'Unknown error');
+            const { retry, backoffMs } = this.context.cascadeManager.shouldRetry(taskId);
+            if (retry) {
+              await new Promise(r => setTimeout(r, backoffMs));
+              this.results.delete(taskId);
+              this.inProgress.delete(taskId);
+              pending.add(taskId);
+              return;
+            }
+          }
+
+          if (this.context.config.notifyOnComplete !== 'none') {
+            console.error(`Task ${taskId} failed: ${result.error}`);
+          }
         }
       } finally {
         this.inProgress.delete(taskId);
@@ -106,40 +141,26 @@ export class DAGExecutor {
     };
 
     // Main execution loop
-    while (pending.size > 0 || executing.length > 0) {
-      // Start new tasks up to concurrency limit
-      const availableSlots = maxConcurrency - executing.length;
+    while (pending.size > 0 || promiseToTask.size > 0) {
+      const availableSlots = maxConcurrency - promiseToTask.size;
       const readyTasks = Array.from(pending).filter(taskId => {
         const task = this.tasks.get(taskId);
         if (!task) return false;
-        return (task.dependsOn || []).every(depId => 
+        if (this.context.cascadeManager?.isSkipped(taskId)) return true;
+        return (task.dependsOn || []).every(depId =>
           this.results.has(depId) && this.results.get(depId)!.success
         );
       }).slice(0, availableSlots);
 
       for (const taskId of readyTasks) {
-        executing.push(tryExecuteTask(taskId));
+        const promise = tryExecuteTask(taskId);
+        promiseToTask.set(promise, taskId);
+        promise.finally(() => promiseToTask.delete(promise));
       }
 
-      // Wait for at least one task to complete
-      if (executing.length > 0) {
-        await Promise.race(executing);
-        // Clean up completed promises
-        for (let i = executing.length - 1; i >= 0; i--) {
-          const promise = executing[i];
-          // Use a quick check - not ideal but works for this pattern
-          const timeoutPromise = new Promise<void>((_, reject) => 
-            setTimeout(() => reject(new Error('timeout')), 0)
-          );
-          try {
-            await Promise.race([promise, timeoutPromise]);
-            executing.splice(i, 1);
-          } catch {
-            // Still running
-          }
-        }
+      if (promiseToTask.size > 0) {
+        await Promise.race(promiseToTask.keys());
       } else if (pending.size > 0) {
-        // No tasks executing but some pending - likely circular dependency or failed deps
         break;
       }
     }
@@ -153,63 +174,80 @@ export class DAGExecutor {
 
     while (remaining.size > 0) {
       wave++;
-      
-      // Find all tasks with satisfied dependencies
+
       const readyTasks = Array.from(remaining).filter(taskId => {
+        if (this.context.cascadeManager?.isSkipped(taskId)) return true;
         const task = this.tasks.get(taskId);
         if (!task) return false;
-        return (task.dependsOn || []).every(depId => 
+        return (task.dependsOn || []).every(depId =>
           this.results.has(depId) && this.results.get(depId)!.success
         );
       });
 
-      if (readyTasks.length === 0) {
-        // No ready tasks but still remaining - failed or circular deps
-        break;
-      }
+      if (readyTasks.length === 0) break;
 
       console.log(`Wave ${wave}: Executing ${readyTasks.length} tasks`);
 
-      // Execute all ready tasks concurrently (up to concurrency limit)
       const chunks = this.chunkArray(readyTasks, this.context.config.localConcurrency);
-      
+
       for (const chunk of chunks) {
         const promises = chunk.map(async (taskId) => {
           const task = this.tasks.get(taskId)!;
           remaining.delete(taskId);
 
-          const executor = this.context.getExecutor(task.executor || 'claude-code');
-          if (!executor) {
+          // Skip cascaded tasks
+          if (this.context.cascadeManager?.isSkipped(taskId)) {
             this.results.set(taskId, {
-              task,
-              success: false,
-              error: `Executor ${task.executor} not found`,
-              durationMs: 0,
-              retries: 0,
+              task, success: false,
+              error: 'Skipped due to upstream failure (cascade)',
+              durationMs: 0, retries: 0,
             });
             return;
           }
 
+          const executor = this.context.getExecutor(task.executor || 'claude-code');
+          if (!executor) {
+            this.results.set(taskId, {
+              task, success: false,
+              error: `Executor ${task.executor} not found`,
+              durationMs: 0, retries: 0,
+            });
+            return;
+          }
+
+          // Build context from dependencies
+          let taskContext: Record<string, unknown> | undefined;
+          if (this.context.contextManager) {
+            taskContext = this.context.contextManager.buildTaskContext(taskId, task.dependsOn || []);
+          }
+
           const result = await executor.execute(task, {
             timeoutMs: (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000,
+            ...(taskContext ? { context: taskContext } : {}),
           });
 
           this.results.set(taskId, result);
+
+          if (result.success) {
+            this.context.contextManager?.recordTaskOutput(
+              taskId, result.output || '', true
+            );
+          } else if (this.context.cascadeManager) {
+            this.context.cascadeManager.handleFailure(taskId, result.error || 'Unknown error');
+          }
         });
 
         await Promise.all(promises);
       }
     }
 
-    // Mark remaining tasks as failed (unmet dependencies)
+    // Mark remaining tasks as failed
     for (const taskId of remaining) {
       const task = this.tasks.get(taskId)!;
       this.results.set(taskId, {
-        task,
-        success: false,
+        task, success: false,
         error: 'Dependencies not satisfied or circular dependency detected',
-        durationMs: 0,
-        retries: 0,
+        durationMs: 0, retries: 0,
       });
     }
 
@@ -228,7 +266,7 @@ export class DAGExecutor {
     const total = this.tasks.size;
     const completed = Array.from(this.results.values()).filter(r => r.success).length;
     const failed = Array.from(this.results.values()).filter(r => !r.success).length;
-    
+
     return {
       totalTasks: total,
       completedTasks: completed,

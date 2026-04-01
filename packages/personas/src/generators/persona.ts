@@ -1,4 +1,4 @@
-//**
+/**
  * Main persona generator
  * 
  * Creates all files needed for a complete persona setup.

@@ -1,4 +1,4 @@
-//**
+/**
  * Metric collection for introspection
  */
 
@@ -174,37 +174,100 @@ export async function measureGraphConnectivity(): Promise<MetricResult> {
 }
 
 export async function measureRoutingAccuracy(): Promise<MetricResult> {
-  // Placeholder - would analyze swarm episode outcomes
-  return buildMetric('Routing Accuracy', 0.85, 0.85, 0.70, 0.20,
-    '85% routing accuracy (placeholder)',
-    'Analyze episode outcomes for routing success rate',
+  // Query episode outcomes from memory DB
+  if (existsSync(MEMORY_DB)) {
+    const result = run(`sqlite3 "${MEMORY_DB}" "SELECT COUNT(*) as total, SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) as successes FROM episodes WHERE created_at > strftime('%s','now','-14 days');"`);
+    const parts = result.stdout.split('|');
+    if (parts.length >= 2) {
+      const total = parseInt(parts[0]) || 0;
+      const successes = parseInt(parts[1]) || 0;
+      const rate = total > 0 ? successes / total : 0;
+      return buildMetric('Routing Accuracy', rate, 0.85, 0.70, 0.20,
+        `${successes}/${total} episodes succeeded (${(rate * 100).toFixed(1)}%) over 14 days`,
+        rate < 0.85
+          ? 'Review failed episodes for routing mismatches'
+          : 'Routing accuracy is healthy',
+        false
+      );
+    }
+  }
+  return buildMetric('Routing Accuracy', 0, 0.85, 0.70, 0.20,
+    'No episode data available',
+    'Ensure episodes are being recorded to memory DB',
     false
   );
 }
 
 export async function measureEvalCalibration(): Promise<MetricResult> {
-  // Placeholder - would check Stage 3 override rate
-  return buildMetric('Eval Calibration', 0.12, 0.15, 0.25, 0.15,
-    '12% Stage 3 override rate (placeholder)',
-    'Review evaluation reports for override patterns',
+  // Check Stage 3 override rate from evaluation report files
+  const evalDir = join(WORKSPACE, '.zo/evaluations');
+  if (existsSync(evalDir)) {
+    const result = run(`find "${evalDir}" -name "*.json" -mtime -14 -exec grep -l '"stage3Override"' {} \\; | wc -l`);
+    const overrideResult = run(`find "${evalDir}" -name "*.json" -mtime -14 | wc -l`);
+    const overrides = parseInt(result.stdout) || 0;
+    const total = parseInt(overrideResult.stdout) || 0;
+    const rate = total > 0 ? overrides / total : 0;
+    return buildMetric('Eval Calibration', rate, 0.15, 0.25, 0.15,
+      `${overrides}/${total} evals had Stage 3 overrides (${(rate * 100).toFixed(1)}%)`,
+      rate > 0.15
+        ? 'High override rate — review mechanical/semantic checks for false positives'
+        : 'Override rate is within acceptable range',
+      true
+    );
+  }
+  return buildMetric('Eval Calibration', 0, 0.15, 0.25, 0.15,
+    'No evaluation data found',
+    'Run evaluations to establish calibration baseline',
     true
   );
 }
 
 export async function measureProcedureFreshness(): Promise<MetricResult> {
-  // Placeholder - would check stale procedure ratio
-  return buildMetric('Procedure Freshness', 0.82, 0.70, 0.50, 0.15,
-    '82% procedures fresh (updated <14 days)',
-    'Review and update stale procedures',
+  // Check stale procedure ratio from memory DB
+  if (existsSync(MEMORY_DB)) {
+    const result = run(`sqlite3 "${MEMORY_DB}" "SELECT COUNT(*) as total, SUM(CASE WHEN last_accessed > strftime('%s','now','-14 days') THEN 1 ELSE 0 END) as fresh FROM facts WHERE category='convention' OR category='reference';"`);
+    const parts = result.stdout.split('|');
+    if (parts.length >= 2) {
+      const total = parseInt(parts[0]) || 0;
+      const fresh = parseInt(parts[1]) || 0;
+      const rate = total > 0 ? fresh / total : 0;
+      return buildMetric('Procedure Freshness', rate, 0.70, 0.50, 0.15,
+        `${fresh}/${total} procedures accessed in last 14 days (${(rate * 100).toFixed(1)}%)`,
+        rate < 0.70
+          ? 'Review and update stale procedures'
+          : 'Procedure freshness is healthy',
+        false
+      );
+    }
+  }
+  return buildMetric('Procedure Freshness', 0, 0.70, 0.50, 0.15,
+    'No procedure data available',
+    'Ensure procedures are stored in memory DB',
     false
   );
 }
 
 export async function measureEpisodeVelocity(): Promise<MetricResult> {
-  // Placeholder - would analyze 14-day success trend
-  return buildMetric('Episode Velocity', 0.78, 0.75, 0.60, 0.10,
-    '78% success trend over 14 days',
-    'Monitor episode outcomes for trend changes',
+  // Analyze 14-day success trend from episodes
+  if (existsSync(MEMORY_DB)) {
+    const result = run(`sqlite3 "${MEMORY_DB}" "SELECT COUNT(*) as total, SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) as successes FROM episodes WHERE created_at > strftime('%s','now','-14 days');"`);
+    const parts = result.stdout.split('|');
+    if (parts.length >= 2) {
+      const total = parseInt(parts[0]) || 0;
+      const successes = parseInt(parts[1]) || 0;
+      const rate = total > 0 ? successes / total : 0;
+      return buildMetric('Episode Velocity', rate, 0.75, 0.60, 0.10,
+        `${successes}/${total} episodes succeeded over 14 days (${(rate * 100).toFixed(1)}%)`,
+        rate < 0.75
+          ? 'Investigate recurring failure patterns in recent episodes'
+          : 'Episode velocity is healthy',
+        false
+      );
+    }
+  }
+  return buildMetric('Episode Velocity', 0, 0.75, 0.60, 0.10,
+    'No episode data available',
+    'Ensure episodes are being recorded',
     false
   );
 }

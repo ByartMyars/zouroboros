@@ -4,10 +4,13 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
-import type { ZouroborosConfig, ZouroborosConfig as Config } from '../types.js';
+import type { ZouroborosConfig } from '../types.js';
 import { DEFAULT_CONFIG, DEFAULT_CONFIG_PATH, VALID_LOG_LEVELS, VALID_LATENCY_PREFERENCES } from '../constants.js';
+import { validateConfigSchema, formatValidationErrors } from './schema.js';
 
 export { DEFAULT_CONFIG, DEFAULT_CONFIG_PATH };
+export { validateConfigSchema, formatValidationErrors } from './schema.js';
+export type { ConfigValidationIssue } from './schema.js';
 
 /**
  * Configuration validation error
@@ -70,7 +73,6 @@ export function mergeConfig(partial: Partial<ZouroborosConfig>): ZouroborosConfi
       retryConfig: { ...DEFAULT_CONFIG.swarm.retryConfig, ...partial.swarm?.retryConfig },
     },
     personas: { ...DEFAULT_CONFIG.personas, ...partial.personas },
-    omniroute: { ...DEFAULT_CONFIG.omniroute, ...partial.omniroute },
     selfheal: {
       ...DEFAULT_CONFIG.selfheal,
       ...partial.selfheal,
@@ -80,112 +82,20 @@ export function mergeConfig(partial: Partial<ZouroborosConfig>): ZouroborosConfi
 }
 
 /**
- * Validate configuration structure
+ * Validate configuration structure using Zod schemas.
+ * Throws ConfigValidationError with actionable messages on failure.
  */
 export function validateConfig(config: unknown): ZouroborosConfig {
   if (typeof config !== 'object' || config === null) {
     throw new ConfigValidationError('Config must be an object', '');
   }
 
-  const cfg = config as Record<string, unknown>;
-
-  // Validate core section
-  if (cfg.core) {
-    validateCoreConfig(cfg.core);
-  }
-
-  // Validate memory section
-  if (cfg.memory) {
-    validateMemoryConfig(cfg.memory);
-  }
-
-  // Validate swarm section
-  if (cfg.swarm) {
-    validateSwarmConfig(cfg.swarm);
-  }
-
-  // Validate omniroute section
-  if (cfg.omniroute) {
-    validateOmniRouteConfig(cfg.omniroute);
+  const issues = validateConfigSchema(config);
+  if (issues) {
+    throw new ConfigValidationError(formatValidationErrors(issues), issues[0]?.path ?? '');
   }
 
   return config as ZouroborosConfig;
-}
-
-function validateCoreConfig(core: unknown): void {
-  if (typeof core !== 'object' || core === null) {
-    throw new ConfigValidationError('core must be an object', 'core');
-  }
-
-  const c = core as Record<string, unknown>;
-
-  if (c.logLevel && !VALID_LOG_LEVELS.includes(c.logLevel as typeof VALID_LOG_LEVELS[number])) {
-    throw new ConfigValidationError(
-      `Invalid logLevel: ${c.logLevel}. Must be one of: ${VALID_LOG_LEVELS.join(', ')}`,
-      'core.logLevel'
-    );
-  }
-}
-
-function validateMemoryConfig(memory: unknown): void {
-  if (typeof memory !== 'object' || memory === null) {
-    throw new ConfigValidationError('memory must be an object', 'memory');
-  }
-
-  const m = memory as Record<string, unknown>;
-
-  if (m.captureIntervalMinutes !== undefined) {
-    const interval = Number(m.captureIntervalMinutes);
-    if (isNaN(interval) || interval < 1) {
-      throw new ConfigValidationError(
-        'captureIntervalMinutes must be a positive number',
-        'memory.captureIntervalMinutes'
-      );
-    }
-  }
-}
-
-function validateSwarmConfig(swarm: unknown): void {
-  if (typeof swarm !== 'object' || swarm === null) {
-    throw new ConfigValidationError('swarm must be an object', 'swarm');
-  }
-
-  const s = swarm as Record<string, unknown>;
-
-  if (s.maxConcurrency !== undefined) {
-    const concurrency = Number(s.maxConcurrency);
-    if (isNaN(concurrency) || concurrency < 1) {
-      throw new ConfigValidationError(
-        'maxConcurrency must be a positive number',
-        'swarm.maxConcurrency'
-      );
-    }
-  }
-
-  if (s.localConcurrency !== undefined) {
-    const concurrency = Number(s.localConcurrency);
-    if (isNaN(concurrency) || concurrency < 1) {
-      throw new ConfigValidationError(
-        'localConcurrency must be a positive number',
-        'swarm.localConcurrency'
-      );
-    }
-  }
-}
-
-function validateOmniRouteConfig(omniroute: unknown): void {
-  if (typeof omniroute !== 'object' || omniroute === null) {
-    throw new ConfigValidationError('omniroute must be an object', 'omniroute');
-  }
-
-  const o = omniroute as Record<string, unknown>;
-
-  if (o.defaultLatency && !VALID_LATENCY_PREFERENCES.includes(o.defaultLatency as typeof VALID_LATENCY_PREFERENCES[number])) {
-    throw new ConfigValidationError(
-      `Invalid defaultLatency: ${o.defaultLatency}. Must be one of: ${VALID_LATENCY_PREFERENCES.join(', ')}`,
-      'omniroute.defaultLatency'
-    );
-  }
 }
 
 /**
@@ -214,8 +124,8 @@ export function setConfigValue<T>(
   value: T
 ): ZouroborosConfig {
   const parts = path.split('.');
-  const newConfig = { ...config };
-  let current: Record<string, unknown> = newConfig;
+  const newConfig = structuredClone(config);
+  let current: Record<string, unknown> = newConfig as unknown as Record<string, unknown>;
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];

@@ -1,21 +1,19 @@
 /**
  * Zouroboros Workflow
- * 
+ *
  * Spec-first development tools: interview, evaluation, unstuck, and autoloop.
- * 
+ *
  * @module zouroboros-workflow
  */
 
 // Spec-First Interview
 export {
   scoreAmbiguity,
-  generateSeedTemplate,
-  generateSeedFromNotes
 } from './interview/ambiguity.js';
 
 export {
   generateSeed,
-  parseSeedFromNotes
+  formatSeedYAML,
 } from './interview/seed.js';
 
 export type {
@@ -31,8 +29,8 @@ export {
 
 export {
   parseSeed,
-  evaluateSemantic,
-  calculateDriftScore
+  runSemanticEvaluation,
+  calculateDrift
 } from './evaluate/semantic.js';
 
 export type {

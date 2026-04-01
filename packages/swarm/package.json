@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "bun test src/__tests__/"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"

@@ -1,4 +1,4 @@
-//**
+/**
  * Scorecard builder for introspection
  */
 

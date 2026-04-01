@@ -33,24 +33,81 @@ export async function generateEmbedding(
 }
 
 /**
- * Generate HyDE (Hypothetical Document Expansion) query
- * 
- * Creates an expanded query by generating a hypothetical ideal answer,
- * then embedding both the query and the hypothetical answer.
+ * Generate a hypothetical answer using Ollama's generate endpoint.
+ * Used by HyDE to create an ideal document for embedding.
+ */
+export async function generateHypotheticalAnswer(
+  query: string,
+  config: MemoryConfig,
+  options: { model?: string; maxTokens?: number } = {}
+): Promise<string> {
+  const model = options.model ?? 'llama3';
+  const prompt = `Answer the following question concisely in 2-3 sentences as if you had perfect knowledge. Do not hedge or say "I don't know".\n\nQuestion: ${query}\n\nAnswer:`;
+
+  const response = await fetch(`${config.ollamaUrl}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt,
+      stream: false,
+      options: { num_predict: options.maxTokens ?? 150 },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ollama generate error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json() as { response: string };
+  return data.response.trim();
+}
+
+/**
+ * Generate HyDE (Hypothetical Document Expansion) embeddings.
+ *
+ * 1. Embeds the original query.
+ * 2. Uses an LLM to generate a hypothetical ideal answer.
+ * 3. Embeds the hypothetical answer.
+ * 4. Returns both embeddings so the caller can blend them.
+ *
+ * Falls back to duplicating the original embedding if generation fails.
  */
 export async function generateHyDEExpansion(
   query: string,
-  config: MemoryConfig
-): Promise<{ original: number[]; expanded: number[] }> {
-  // Generate embedding for original query
+  config: MemoryConfig,
+  options: { generationModel?: string; maxTokens?: number } = {}
+): Promise<{ original: number[]; expanded: number[]; hypothetical: string }> {
   const original = await generateEmbedding(query, config);
 
-  // Generate hypothetical answer (simplified - in production, use an LLM)
-  // For now, we'll just use the original query
-  const hypotheticalAnswer = query;
-  const expanded = await generateEmbedding(hypotheticalAnswer, config);
+  let hypothetical: string;
+  try {
+    hypothetical = await generateHypotheticalAnswer(query, config, {
+      model: options.generationModel,
+      maxTokens: options.maxTokens,
+    });
+  } catch {
+    return { original, expanded: original, hypothetical: query };
+  }
 
-  return { original, expanded };
+  const expanded = await generateEmbedding(hypothetical, config);
+  return { original, expanded, hypothetical };
+}
+
+/**
+ * Blend two embeddings by weighted average.
+ * Default: 40% original query, 60% hypothetical answer (HyDE sweet spot).
+ */
+export function blendEmbeddings(
+  a: number[],
+  b: number[],
+  weightA: number = 0.4
+): number[] {
+  if (a.length !== b.length) {
+    throw new Error('Embeddings must have the same dimension');
+  }
+  const weightB = 1 - weightA;
+  return a.map((val, i) => val * weightA + b[i] * weightB);
 }
 
 /**

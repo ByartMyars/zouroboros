@@ -11,14 +11,16 @@
       "types": "./dist/index.d.ts"
     },
     "./config": {
-      "import": "./dist/config/index.js",
-      "types": "./dist/config/index.d.ts"
+      "import": "./dist/config/loader.js",
+      "types": "./dist/config/loader.d.ts"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "test": "bun test src/",
+    "test:coverage": "bun test --coverage src/",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },

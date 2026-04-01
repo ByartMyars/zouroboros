@@ -9,7 +9,7 @@ import { parseArgs } from 'util';
 import { existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { runMechanicalChecks } from '../evaluate/mechanical.js';
-import { parseSeed, evaluateSemantic } from '../evaluate/semantic.js';
+import { parseSeed, runSemanticEvaluation } from '../evaluate/semantic.js';
 import type { EvaluationReport } from '../evaluate/types.js';
 
 const { values } = parseArgs({
@@ -126,7 +126,7 @@ async function main() {
     console.log('Stage 2: Semantic Evaluation');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    const result = evaluateSemantic(seed, values.artifact);
+    const result = runSemanticEvaluation(seed, values.artifact);
     
     console.log(`\nAcceptance Criteria (${result.criteria.filter(c => c.met).length}/${result.criteria.length} met):`);
     for (const criterion of result.criteria) {

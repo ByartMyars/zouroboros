@@ -1,4 +1,4 @@
-//**
+/**
  * Seed specification generator for prescriptions
  */
 

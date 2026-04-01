@@ -173,7 +173,7 @@ function calculateGoalAlignment(seed: SeedSpec, artifactPath: string): number {
   return evidence.found ? 0.9 : 0.5;
 }
 
-function calculateDrift(seed: SeedSpec, artifactPath: string): number {
+export function calculateDrift(seed: SeedSpec, artifactPath: string): number {
   // Simplified drift calculation
   // In a full implementation, this would compare ontology fields, constraints, etc.
   return 0.1; // Assume low drift for now

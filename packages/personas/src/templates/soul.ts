@@ -1,4 +1,4 @@
-//**
+/**
  * SOUL.md template generator
  * 
  * Generates the constitution file for all personas.

@@ -1,4 +1,4 @@
-//**
+/**
  * Playbook registry for self-prescription
  */
 

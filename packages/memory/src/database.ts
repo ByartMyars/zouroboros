@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS facts (
   value TEXT NOT NULL,
   text TEXT NOT NULL,
   category TEXT DEFAULT 'fact' CHECK(category IN ('preference', 'fact', 'decision', 'convention', 'other', 'reference', 'project')),
-  decay_class TEXT DEFAULT 'stable' CHECK(decay_class IN ('permanent', 'stable', 'active', 'session', 'checkpoint')),
+  decay_class TEXT DEFAULT 'medium' CHECK(decay_class IN ('permanent', 'long', 'medium', 'short')),
   importance REAL DEFAULT 1.0,
   source TEXT,
   created_at INTEGER DEFAULT (strftime('%s', 'now')),

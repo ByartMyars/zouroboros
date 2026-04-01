@@ -55,10 +55,9 @@ export const RETRY_DEFAULTS = {
 };
 
 // ============================================================================
-// OmniRoute Defaults
+// Routing Service Defaults
 // ============================================================================
 
-export const DEFAULT_OMNIROUTE_URL = 'http://localhost:20128';
 export const DEFAULT_LATENCY_PREFERENCE = 'balanced';
 
 // Complexity score thresholds
@@ -69,7 +68,7 @@ export const COMPLEXITY_THRESHOLDS = {
   complex: 1.0,
 };
 
-// Static combo mapping (fallback when OmniRoute unavailable)
+// Static combo mapping (fallback when external combo service is unavailable)
 export const STATIC_COMBO_MAP: Record<string, string> = {
   trivial: 'swarm-light',
   simple: 'swarm-light',
@@ -163,11 +162,6 @@ export const DEFAULT_CONFIG: ZouroborosConfig = {
     identityDir: join(DEFAULT_WORKSPACE_ROOT, 'IDENTITY'),
     defaultSoulPath: join(DEFAULT_WORKSPACE_ROOT, 'SOUL.md'),
     autoCreateHeartbeat: false,
-  },
-  omniroute: {
-    enabled: true,
-    url: DEFAULT_OMNIROUTE_URL,
-    defaultLatency: 'balanced',
   },
   selfheal: {
     enabled: true,

@@ -46,32 +46,32 @@ export async function retry<T>(
 ): Promise<T> {
   const { maxRetries = 3, backoffMultiplier = 2, maxBackoffMs = 30000, onRetry } = options;
   
-  let lastError: Error;
-  
+  let lastError: Error = new Error('No attempts made');
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt === maxRetries) {
         throw lastError;
       }
-      
+
       if (onRetry) {
         onRetry(lastError, attempt + 1);
       }
-      
+
       const backoffMs = Math.min(
         1000 * Math.pow(backoffMultiplier, attempt),
         maxBackoffMs
       );
-      
+
       await sleep(backoffMs);
     }
   }
-  
-  throw lastError!;
+
+  throw lastError;
 }
 
 /**

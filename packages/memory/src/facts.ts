@@ -4,7 +4,8 @@
 
 import { randomUUID } from 'crypto';
 import { getDatabase } from './database.js';
-import { generateEmbedding, serializeEmbedding, deserializeEmbedding } from './embeddings.js';
+import { generateEmbedding, serializeEmbedding, deserializeEmbedding, generateHyDEExpansion, blendEmbeddings } from './embeddings.js';
+import { invalidateGraphCache } from './graph.js';
 import type { MemoryConfig, MemoryEntry, MemorySearchResult, DecayClass } from 'zouroboros-core';
 
 // Decay class TTLs in seconds
@@ -94,6 +95,7 @@ export async function storeFact(
     }
   }
 
+  invalidateGraphCache();
   return entry;
 }
 
@@ -170,6 +172,7 @@ export async function searchFactsVector(
   options: {
     limit?: number;
     threshold?: number;
+    useHyDE?: boolean;
   } = {}
 ): Promise<MemorySearchResult[]> {
   if (!config.vectorEnabled) {
@@ -177,10 +180,18 @@ export async function searchFactsVector(
   }
 
   const db = getDatabase();
-  const { limit = 10, threshold = 0.7 } = options;
+  const { limit = 10, threshold = 0.7, useHyDE } = options;
 
-  // Generate query embedding
-  const queryEmbedding = await generateEmbedding(query, config);
+  // Generate query embedding, optionally with HyDE expansion
+  let queryEmbedding: number[];
+  const shouldUseHyDE = useHyDE ?? config.hydeExpansion;
+
+  if (shouldUseHyDE) {
+    const hyde = await generateHyDEExpansion(query, config);
+    queryEmbedding = blendEmbeddings(hyde.original, hyde.expanded);
+  } else {
+    queryEmbedding = await generateEmbedding(query, config);
+  }
 
   // Get all facts with embeddings
   const rows = db.query(`
@@ -221,7 +232,7 @@ export async function searchFactsVector(
           tags: row.category ? [row.category] : undefined,
         },
         score: similarity,
-        matchType: 'semantic',
+        matchType: 'semantic' as const,
       };
     })
     .filter(r => r.score >= threshold)
@@ -339,6 +350,7 @@ export function getFact(id: string): MemoryEntry | null {
 export function deleteFact(id: string): boolean {
   const db = getDatabase();
   const result = db.run('DELETE FROM facts WHERE id = ?', [id]);
+  if (result.changes > 0) invalidateGraphCache();
   return result.changes > 0;
 }
 
@@ -357,9 +369,10 @@ export function touchFact(id: string): void {
 export function cleanupExpiredFacts(): number {
   const db = getDatabase();
   const result = db.run(`
-    DELETE FROM facts 
-    WHERE expires_at IS NOT NULL 
+    DELETE FROM facts
+    WHERE expires_at IS NOT NULL
       AND expires_at < strftime('%s', 'now')
   `);
+  if (result.changes > 0) invalidateGraphCache();
   return result.changes;
 }

@@ -35,5 +35,49 @@ export { BridgeExecutor, type BridgeExecutionOptions } from './executor/bridge.j
 // DAG
 export { DAGExecutor, type ExecutionContext, type ExecutionProgress } from './dag/executor.js';
 
+// Streaming capture
+export { StreamCapture, type StreamCaptureConfig, type CapturedChunk, type StreamStats } from './streaming/capture.js';
+
+// Stagnation detection
+export {
+  StagnationDetector,
+  type StagnationConfig,
+  type StagnationEvent,
+  type TaskMonitorState,
+  type StagnationType,
+  type RecoveryAction,
+} from './stagnation/detector.js';
+
+// Cascade manager
+export {
+  CascadeManager,
+  type CascadeConfig,
+  type CascadeEvent,
+  type TaskDependencyInfo,
+  type CascadePolicy,
+  type FailureImpact,
+} from './cascade/manager.js';
+
+// Cross-task context sharing
+export {
+  ContextSharingManager,
+  type ContextSharingConfig,
+  type SharedContext,
+  type TaskOutputSummary,
+  type ContextScope,
+  type ArtifactType,
+} from './context/sharing.js';
+
+// Token optimizer
+export {
+  TokenOptimizer,
+  type TokenOptimizerConfig,
+  type TokenBudget,
+  type ContextInjection,
+  type TokenUsageReport,
+  type MemoryStrategy,
+  type InjectionTier,
+} from './tokens/optimizer.js';
+
 // Main orchestrator
 export { SwarmOrchestrator } from './orchestrator.js';

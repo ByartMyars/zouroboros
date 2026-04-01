@@ -1,18 +1,22 @@
 /**
  * Zouroboros Memory System
- * 
+ *
  * Hybrid SQLite + Vector memory with episodic, procedural, and cognitive capabilities.
- * 
+ *
  * @module zouroboros-memory
  */
+
+import { initDatabase as _initDb, closeDatabase as _closeDb, runMigrations as _runMigrations, getDbStats as _getDbStats } from './database.js';
+import { getEpisodeStats as _getEpisodeStats } from './episodes.js';
+import { ensureProfileSchema as _ensureProfileSchema } from './profiles.js';
 
 export const VERSION = '2.0.0';
 
 // Database
-export { 
-  initDatabase, 
-  getDatabase, 
-  closeDatabase, 
+export {
+  initDatabase,
+  getDatabase,
+  closeDatabase,
   isInitialized,
   runMigrations,
   getDbStats,
@@ -21,7 +25,9 @@ export {
 // Embeddings
 export {
   generateEmbedding,
+  generateHypotheticalAnswer,
   generateHyDEExpansion,
+  blendEmbeddings,
   cosineSimilarity,
   serializeEmbedding,
   deserializeEmbedding,
@@ -50,6 +56,42 @@ export {
   getEpisodeStats,
 } from './episodes.js';
 
+// Graph
+export {
+  buildEntityGraph,
+  getRelatedEntities,
+  searchFactsGraphBoosted,
+  extractQueryEntities,
+  invalidateGraphCache,
+} from './graph.js';
+
+// Cognitive Profiles
+export {
+  getProfile,
+  updateTraits,
+  updatePreferences,
+  recordInteraction,
+  getRecentInteractions,
+  getProfileSummary,
+  listProfiles,
+  deleteProfile,
+  ensureProfileSchema,
+} from './profiles.js';
+
+// Auto-capture
+export {
+  extractFromText,
+  autoCapture,
+  bufferForCapture,
+  startAutoCapture,
+  stopAutoCapture,
+  getCaptureBufferSize,
+} from './capture.js';
+export type { CaptureResult, CaptureOptions } from './capture.js';
+
+// MCP Server
+export { handleMessage, startMcpServer } from './mcp-server.js';
+
 // Re-export types
 export type {
   MemoryEntry,
@@ -61,22 +103,22 @@ export type {
   GraphEdge,
 } from 'zouroboros-core';
 
-// Import types for internal use
 type MemoryConfig = import('zouroboros-core').MemoryConfig;
 
 /**
  * Initialize the memory system
  */
 export function init(config: MemoryConfig): void {
-  initDatabase(config);
-  runMigrations(config);
+  _initDb(config);
+  _runMigrations(config);
+  _ensureProfileSchema();
 }
 
 /**
  * Shutdown the memory system
  */
 export function shutdown(): void {
-  closeDatabase();
+  _closeDb();
 }
 
 /**
@@ -96,10 +138,7 @@ export function getStats(config: MemoryConfig): {
   };
 } {
   return {
-    database: getDbStats(config),
-    episodes: getEpisodeStats(),
+    database: _getDbStats(config),
+    episodes: _getEpisodeStats(),
   };
 }
-
-import { getDbStats } from './database.js';
-import { getEpisodeStats } from './episodes.js';

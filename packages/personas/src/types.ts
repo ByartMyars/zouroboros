@@ -48,7 +48,7 @@ export interface IdentityTemplate {
 export interface SafetyRule {
   id: string;
   rule: string;
-  category: 'safety' | 'compliance' | 'privacy' | 'ethics';
+  category: 'safety' | 'compliance' | 'privacy' | 'ethics' | 'security';
   severity: 'critical' | 'high' | 'medium' | 'low';
 }
 
