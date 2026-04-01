@@ -7,14 +7,7 @@ export const doctorCommand = new Command('doctor')
   .option('--fix', 'Attempt to fix issues automatically')
   .action(async (options) => {
     console.log(chalk.cyan('\n🔍 Zouroboros Health Check\n'));
-    
+
     const healthy = await runDoctor({ fix: options.fix });
-    
-    if (healthy) {
-      console.log(chalk.green('\n✅ All systems healthy\n'));
-      process.exit(0);
-    } else {
-      console.log(chalk.yellow('\n⚠️  Some issues found\n'));
-      process.exit(1);
-    }
+    process.exit(healthy ? 0 : 1);
   });

@@ -15,7 +15,7 @@ export const ZOUROBOROS_NAME = 'Zouroboros';
 
 export const DEFAULT_WORKSPACE_ROOT = '/home/workspace';
 export const DEFAULT_DATA_DIR = join(homedir(), '.zouroboros');
-export const DEFAULT_CONFIG_DIR = join(homedir(), '.config', 'zouroboros');
+export const DEFAULT_CONFIG_DIR = DEFAULT_DATA_DIR;
 export const DEFAULT_CONFIG_PATH = join(DEFAULT_CONFIG_DIR, 'config.json');
 
 // ============================================================================

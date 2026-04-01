@@ -71,43 +71,6 @@ fi
 
 echo "✅ Build complete"
 
-# Initialize configuration
-echo ""
-echo "⚙️  Initializing configuration..."
-
-# Create config directory
-mkdir -p "$HOME/.zouroboros"
-
-# Create default config if it doesn't exist
-if [ ! -f "$HOME/.zouroboros/config.yaml" ]; then
-cat > "$HOME/.zouroboros/config.yaml" << 'EOF'
-# Zouroboros Configuration
-
-workspace:
-  path: /home/workspace
-
-memory:
-  dbPath: /home/workspace/.zo/memory/shared-facts.db
-  embeddingModel: nomic-embed-text
-  ollamaUrl: http://localhost:11434
-
-swarm:
-  localConcurrency: 8
-  timeoutSeconds: 600
-  maxRetries: 3
-  routingStrategy: balanced
-
-personas:
-  identityDir: /home/workspace/IDENTITY
-  agencyAgentsDir: /home/workspace/Skills/agency-agents
-
-logging:
-  level: info
-  format: json
-EOF
-    echo "✅ Configuration created at $HOME/.zouroboros/config.yaml"
-fi
-
 # Link CLI globally
 echo ""
 echo "🔗 Linking CLI..."
@@ -118,8 +81,8 @@ if [ -z "${PNPM_HOME:-}" ]; then
     mkdir -p "$PNPM_HOME"
 fi
 
-# Add PNPM_HOME to PATH for this session
-export PATH="$PNPM_HOME:$PATH"
+# Add PNPM_HOME and local bin to PATH for this session
+export PATH="$PNPM_HOME:$HOME/.local/bin:$PATH"
 
 cd "$INSTALL_DIR/cli"
 if pnpm link --global 2>/dev/null; then
@@ -157,14 +120,17 @@ if ! command -v zouroboros &> /dev/null; then
     fi
 fi
 
-# Run health check
+# Run full initialization (config + memory DB + Ollama + health check)
 echo ""
-echo "🏥 Running health check..."
 if command -v zouroboros &> /dev/null; then
-    zouroboros doctor || true
+    zouroboros init --force || true
+elif [ -x "$HOME/.local/bin/zouroboros" ]; then
+    "$HOME/.local/bin/zouroboros" init --force || true
+elif [ -f "$INSTALL_DIR/cli/dist/index.js" ]; then
+    bun "$INSTALL_DIR/cli/dist/index.js" init --force || true
 else
-    echo "⚠️  CLI not in PATH yet. Run 'source ~/.bashrc' or 'source ~/.zshrc' and try:"
-    echo "   zouroboros doctor"
+    echo "⚠️  CLI not found — skipping auto-init."
+    echo "   After adding CLI to PATH, run: zouroboros init"
 fi
 
 # Setup complete
@@ -175,7 +141,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Quick start:"
 echo "  zouroboros doctor         # Check health"
-echo "  zouroboros init           # Initialize project"
+echo "  zouroboros doctor --fix   # Auto-repair issues"
 echo "  zouroboros memory --help  # Memory commands"
 echo "  zouroboros tui            # Launch dashboard"
 echo ""
