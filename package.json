@@ -23,6 +23,10 @@
     "personas",
     "zocomputer"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlandoj/zouroboros.git"
+  },
   "author": "marlandoj",
   "license": "MIT",
   "devDependencies": {
