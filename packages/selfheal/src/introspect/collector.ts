@@ -8,7 +8,8 @@ import { join } from 'path';
 import type { MetricResult } from '../types.js';
 
 const WORKSPACE = process.env.ZO_WORKSPACE || '/home/workspace';
-const MEMORY_SCRIPTS = join(WORKSPACE, 'Skills/zo-memory-system/scripts');
+const MONOREPO_ROOT = join(import.meta.dirname || __dirname, '../../../..');
+const MEMORY_SCRIPTS = join(MONOREPO_ROOT, 'packages/memory/src');
 const MEMORY_DB = join(WORKSPACE, '.zo/memory/shared-facts.db');
 
 interface RunResult {

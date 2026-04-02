@@ -18,11 +18,12 @@ import { configCommand } from './commands/config.js';
 import { memoryCommand } from './commands/memory.js';
 import { swarmCommand } from './commands/swarm.js';
 import { personaCommand } from './commands/persona.js';
-import { workflowCommand } from './commands/workflow.js';
+import { workflowCommand, selfhealCommand } from './commands/workflow.js';
 import { healCommand } from './commands/heal.js';
 import { tuiCommand } from './commands/tui.js';
 import { backupCommand } from './commands/backup.js';
 import { migrateCommand } from './commands/migrate.js';
+import { skillsCommand } from './commands/skills.js';
 
 const program = new Command();
 
@@ -50,10 +51,12 @@ program.addCommand(memoryCommand);
 program.addCommand(swarmCommand);
 program.addCommand(personaCommand);
 program.addCommand(workflowCommand);
+program.addCommand(selfhealCommand);
 program.addCommand(healCommand);
 program.addCommand(tuiCommand);
 program.addCommand(backupCommand);
 program.addCommand(migrateCommand);
+program.addCommand(skillsCommand);
 
 // Default action (no command)
 program.action(() => {

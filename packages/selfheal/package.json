@@ -5,6 +5,11 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "zouroboros-introspect": "./dist/cli/introspect.js",
+    "zouroboros-prescribe": "./dist/cli/prescribe.js",
+    "zouroboros-evolve": "./dist/cli/evolve.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

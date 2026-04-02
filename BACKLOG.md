@@ -201,6 +201,20 @@ All individual repos have been migrated to the monorepo and archived (2026-04-01
 | ~~`zouroboros-persona-creator`~~ | `packages/persona-creator/` | ✅ Archived |
 | ~~`Projects/zouroboros-rag-expansion`~~ | `packages/rag/` | ✅ Migrated (2026-04-01) |
 
+**Skills migrated into monorepo (2026-04-02):**
+
+| Skill | Monorepo Location | Status |
+|-------|-------------------|--------|
+| `spec-first-interview` | `packages/workflow/docs/spec-first-interview/` | ✅ Docs + refs migrated |
+| `three-stage-eval` | `packages/workflow/docs/three-stage-eval/` | ✅ Docs + refs migrated |
+| `autoloop` | `packages/workflow/docs/autoloop/` + `src/autoloop/standalone/` | ✅ Docs + standalone scripts migrated |
+| `unstuck-lateral` | `packages/workflow/docs/unstuck-lateral/` | ✅ Docs + refs migrated |
+| `zouroboros-introspect` | `packages/selfheal/docs/introspect/` + CLI + standalone | ✅ Full migration |
+| `zouroboros-prescribe` | `packages/selfheal/docs/prescribe/` + CLI + standalone | ✅ Full migration |
+| `zouroboros-evolve` | `packages/selfheal/docs/evolve/` + CLI + standalone | ✅ Full migration |
+
+Standalone copies in `Skills/` deprecated with notices pointing to monorepo.
+
 **Remaining standalone repos (not part of monorepo):**
 - `zouroboros-seedkit` — Standalone installer/bootstrap kit, stays independent
 - `zo-ai-character-builder` — Standalone skill, stays independent

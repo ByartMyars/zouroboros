@@ -122,6 +122,11 @@ else
     echo "   Open a new terminal or run: export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
 
+# Export skills to Skills directory
+echo ""
+echo "📦 Exporting skills..."
+bash "$INSTALL_DIR/scripts/export-skills.sh" --dest "${ZO_WORKSPACE:-$HOME}/Skills"
+
 # Run full initialization (config + memory DB + Ollama + health check)
 echo ""
 zouroboros init --force || bun "$CLI_ENTRY" init --force || true
