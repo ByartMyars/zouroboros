@@ -153,30 +153,70 @@ CREATE INDEX IF NOT EXISTS idx_open_loops_entity ON open_loops(entity, status);
   }
 
   // Check 4: Swarm executors
-  const executors = ['claude-code', 'codex', 'gemini', 'hermes'];
+  const executorInfo: Record<string, { binary: string; install: string }> = {
+    'claude-code': { binary: 'claude', install: 'npm install -g @anthropic-ai/claude-code' },
+    'codex': { binary: 'codex', install: 'npm install -g @openai/codex' },
+    'gemini': { binary: 'gemini', install: 'npm install -g @google/gemini-cli' },
+    'hermes': { binary: 'hermes', install: 'pip install hermes-agent && hermes setup' },
+  };
+  const executors = Object.keys(executorInfo);
   const availableExecutors: string[] = [];
+  const missingExecutors: string[] = [];
 
   for (const executor of executors) {
+    const { binary } = executorInfo[executor];
     try {
-      execSync(`command -v ${executor} > /dev/null 2>&1`);
+      execSync(`command -v ${binary} > /dev/null 2>&1`);
       availableExecutors.push(executor);
     } catch {
-      // Not available
+      missingExecutors.push(executor);
     }
   }
 
-  if (availableExecutors.length > 0) {
+  if (availableExecutors.length === executors.length) {
     checks.push({
       name: 'Swarm Executors',
       status: 'ok',
-      message: `${availableExecutors.length} available: ${availableExecutors.join(', ')}`
+      message: `${availableExecutors.length}/${executors.length} available: ${availableExecutors.join(', ')}`
+    });
+  } else if (availableExecutors.length > 0) {
+    checks.push({
+      name: 'Swarm Executors',
+      status: 'warning',
+      message: `${availableExecutors.length}/${executors.length} available. Missing: ${missingExecutors.join(', ')}`,
+      fixable: true,
+      fix: () => {
+        let allFixed = true;
+        for (const executor of missingExecutors) {
+          const info = executorInfo[executor];
+          try {
+            console.log(chalk.gray(`     Installing ${executor} (${info.install})...`));
+            execSync(info.install, { stdio: 'inherit', timeout: 120000 });
+          } catch {
+            console.log(chalk.yellow(`     ⚠ Could not auto-install ${executor}. Run manually: ${info.install}`));
+            allFixed = false;
+          }
+        }
+        return allFixed;
+      }
     });
   } else {
     checks.push({
       name: 'Swarm Executors',
       status: 'error',
-      message: 'None found. Install at least one: claude-code, codex, gemini, or hermes',
-      fixable: false
+      message: 'None found. Install at least one executor.',
+      fixable: true,
+      fix: () => {
+        const info = executorInfo['claude-code'];
+        try {
+          console.log(chalk.gray(`     Installing claude-code (${info.install})...`));
+          execSync(info.install, { stdio: 'inherit', timeout: 120000 });
+          return true;
+        } catch {
+          console.log(chalk.yellow(`     ⚠ Could not auto-install. Run manually: ${info.install}`));
+          return false;
+        }
+      }
     });
   }
 

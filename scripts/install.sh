@@ -126,6 +126,52 @@ fi
 echo ""
 zouroboros init --force || bun "$CLI_ENTRY" init --force || true
 
+# Check for swarm executors and show prerequisites
+echo ""
+echo "🔍 Checking swarm executors..."
+EXECUTOR_COUNT=0
+MISSING_EXECUTORS=""
+
+if command -v claude &> /dev/null; then
+    EXECUTOR_COUNT=$((EXECUTOR_COUNT + 1))
+else
+    MISSING_EXECUTORS="${MISSING_EXECUTORS}\n   npm install -g @anthropic-ai/claude-code    # Claude Code"
+fi
+
+if command -v codex &> /dev/null; then
+    EXECUTOR_COUNT=$((EXECUTOR_COUNT + 1))
+else
+    MISSING_EXECUTORS="${MISSING_EXECUTORS}\n   npm install -g @openai/codex                 # Codex CLI"
+fi
+
+if command -v gemini &> /dev/null; then
+    EXECUTOR_COUNT=$((EXECUTOR_COUNT + 1))
+else
+    MISSING_EXECUTORS="${MISSING_EXECUTORS}\n   npm install -g @google/gemini-cli             # Gemini CLI"
+fi
+
+if command -v hermes &> /dev/null; then
+    EXECUTOR_COUNT=$((EXECUTOR_COUNT + 1))
+else
+    MISSING_EXECUTORS="${MISSING_EXECUTORS}\n   pip install hermes-agent && hermes setup      # Hermes Agent"
+fi
+
+if [ "$EXECUTOR_COUNT" -eq 4 ]; then
+    echo "✅ All 4 executors available"
+elif [ "$EXECUTOR_COUNT" -gt 0 ]; then
+    echo "✅ ${EXECUTOR_COUNT}/4 executors available"
+    echo ""
+    echo "📦 Install missing executors (optional):"
+    echo -e "$MISSING_EXECUTORS"
+    echo ""
+    echo "   Or run: zouroboros doctor --fix"
+else
+    echo "⚠️  No swarm executors found. Install at least one:"
+    echo -e "$MISSING_EXECUTORS"
+    echo ""
+    echo "   Or run: zouroboros doctor --fix"
+fi
+
 # Setup complete
 echo ""
 echo "🎉 Installation complete!"
