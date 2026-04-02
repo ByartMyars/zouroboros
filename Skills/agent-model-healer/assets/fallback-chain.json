@@ -1,0 +1,122 @@
+{
+  "version": 2,
+  "lastUpdated": "2026-04-02",
+  "description": "Model fallback chains for Zouroboros agent self-healing. When a model is unhealthy, agents are switched to the next healthy model in the chain.",
+
+  "healerConfig": {
+    "model": "zo:fast",
+    "label": "Zo Fast (built-in, no external dependency)",
+    "rule": "The healer agent MUST run on a Zo-native model (zo:fast or zo:smart) that has no external provider dependency. Never add zo:fast or zo:smart to a fallback chain. This prevents the watchmen-failure cascade."
+  },
+
+  "probeConfig": {
+    "prompt": "You are a health check responder. List the numbers 1 through 10, each on its own line. After the list, write exactly: HEALTH_CHECK_PASS",
+    "expectedSubstring": "HEALTH_CHECK_PASS",
+    "timeoutMs": 30000,
+    "retries": 1,
+    "latencyThresholds": {
+      "degradedMs": 25000,
+      "slowMs": 45000
+    }
+  },
+
+  "fallbackChains": {
+    "byok:96666e7d-ffa2-4446-ab24-f61c3d979466": {
+      "label": "OpenRouter Kimi K2.5",
+      "fallbacks": [
+        "byok:691a1f36-12f1-4b59-9665-069495d921a8",
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:691a1f36-12f1-4b59-9665-069495d921a8": {
+      "label": "Synthetic Kimi K2.5",
+      "fallbacks": [
+        "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:9580f42f-4e5b-4a8e-88c5-99fe797ffdb2": {
+      "label": "GPT-OSS-120B",
+      "fallbacks": [
+        "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "vercel:moonshotai/kimi-k2.5": {
+      "label": "Vercel Kimi K2.5",
+      "fallbacks": [
+        "byok:691a1f36-12f1-4b59-9665-069495d921a8",
+        "byok:96666e7d-ffa2-4446-ab24-f61c3d979466",
+        "zo:smart"
+      ]
+    },
+    "vercel:minimax/minimax-m2.7": {
+      "label": "Vercel MiniMax M2.7",
+      "fallbacks": [
+        "vercel:minimax/minimax-m2.5",
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "vercel:minimax/minimax-m2.5": {
+      "label": "Vercel MiniMax M2.5",
+      "fallbacks": [
+        "vercel:minimax/minimax-m2.7",
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:878cb55f-1c3f-4941-8323-414cab73d923": {
+      "label": "Unknown BYOK",
+      "fallbacks": [
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:094fa609-d584-4564-892e-d28f9b0d969f": {
+      "label": "Unknown BYOK",
+      "fallbacks": [
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:461d8d6f-9616-4391-960e-3caea2a27829": {
+      "label": "Claude Code Haiku",
+      "fallbacks": [
+        "byok:63a73cf2-224a-4641-8dcb-c3313270d08a",
+        "zo:smart"
+      ]
+    },
+    "byok:63a73cf2-224a-4641-8dcb-c3313270d08a": {
+      "label": "Claude Code Sonnet",
+      "fallbacks": [
+        "byok:461d8d6f-9616-4391-960e-3caea2a27829",
+        "zo:smart"
+      ]
+    }
+  },
+
+  "modelLabels": {
+    "byok:96666e7d-ffa2-4446-ab24-f61c3d979466": "OpenRouter Kimi K2.5",
+    "byok:691a1f36-12f1-4b59-9665-069495d921a8": "Synthetic Kimi K2.5",
+    "byok:63a73cf2-224a-4641-8dcb-c3313270d08a": "Claude Code Sonnet",
+    "byok:461d8d6f-9616-4391-960e-3caea2a27829": "Claude Code Haiku",
+    "byok:b74479bc-ec30-494d-a8c8-b2ff6218e1c0": "Claude Code Opus",
+    "byok:9580f42f-4e5b-4a8e-88c5-99fe797ffdb2": "GPT-OSS-120B",
+    "byok:2aaea7d1-86e4-4266-90b3-774385d68684": "OpenRouter Free",
+    "byok:878cb55f-1c3f-4941-8323-414cab73d923": "BYOK 878c",
+    "byok:094fa609-d584-4564-892e-d28f9b0d969f": "BYOK 094f",
+    "byok:a63dd1cd-6311-4139-bb9d-607b635d3c0b": "Codex GPT 5.1 Mini",
+    "byok:a7e4ec07-8dd7-400c-8e96-623b90dd0a7a": "Codex GPT 5.3",
+    "byok:5f71474c-5852-4063-af9f-861e1c168ff1": "Codex GPT 5.4",
+    "byok:fbaf81c2-0d6e-4807-a4ec-9e4688b4d572": "Synthetic K2 Thinking",
+    "vercel:moonshotai/kimi-k2.5": "Vercel Kimi K2.5",
+    "vercel:minimax/minimax-m2.7": "Vercel MiniMax M2.7",
+    "vercel:minimax/minimax-m2.5": "Vercel MiniMax M2.5",
+    "zo:smart": "Zo Smart",
+    "zo:fast": "Zo Fast"
+  }
+}
