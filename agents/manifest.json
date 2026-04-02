@@ -12,7 +12,6 @@
   ],
   "agents": {
     "memory-embedding-backfill": {
-      "zo_id": "fd6262f5-dd83-457b-b169-1bd3596a6052",
       "title": "Memory Embedding Backfill",
       "package": "packages/memory",
       "persona": "alaric",
@@ -33,7 +32,6 @@
     },
 
     "memory-capture": {
-      "zo_id": "2e677c43-4ba0-41f5-9e2c-da1fe773c57b",
       "title": "Memory Capture Daily Report",
       "package": "packages/memory",
       "persona": "memory-manager",
@@ -55,7 +53,6 @@
     },
 
     "unified-decay": {
-      "zo_id": "ce3e493a-0d75-489b-b060-7518678fbdc0",
       "title": "Unified Decay System",
       "package": "packages/memory",
       "persona": null,
@@ -76,7 +73,6 @@
     },
 
     "self-enhancement-summary": {
-      "zo_id": "1fbbd615-8340-4800-a2fa-6aa6114a7ce5",
       "title": "Daily Self-Enhancement Summary",
       "package": "packages/selfheal",
       "persona": "zouroboros-engineer",
@@ -94,7 +90,6 @@
     },
 
     "vault-indexer": {
-      "zo_id": "c67f7d00-2230-4d65-aefe-cd2805a90cd6",
       "title": "Vault Indexer",
       "package": "packages/memory",
       "persona": "memory-manager",

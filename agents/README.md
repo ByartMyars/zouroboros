@@ -35,16 +35,18 @@ vault-indexer (independent, hourly)
 
 ## Doctor Integration
 
-`zouroboros doctor` reads `manifest.json` and checks each agent's `zo_id` against the Zo platform. It reports:
+`zouroboros doctor` checks a local marker file (`~/.zouroboros/agents-registered.json`) to verify agents have been created. After creating agents in Zo Chat, run:
 
-- **ok** — Agent is registered and active
-- **warning** — Agent exists but is paused/inactive
-- **error** — Agent not found on the platform
+```bash
+zouroboros agents sync
+```
+
+This writes the marker so `doctor` reports them as registered.
 
 ## Updating an Agent
 
 1. Edit the spec in `manifest.json`
-2. Use `edit_agent` on the Zo platform with the `zo_id` to sync the change
-3. Commit both the manifest update and confirm the platform change
+2. Use `edit_agent` in Zo Chat to sync the change to the platform
+3. Commit the manifest update
 
-The manifest is not auto-deployed — it's a reference that keeps agent configs version-controlled and verifiable.
+The manifest is not auto-deployed — it's a reference that keeps agent configs version-controlled.

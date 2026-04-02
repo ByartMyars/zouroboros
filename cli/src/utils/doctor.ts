@@ -229,52 +229,48 @@ CREATE INDEX IF NOT EXISTS idx_open_loops_entity ON open_loops(entity, status);
   }
 
   // Check 6: Scheduled Agents (from agents/manifest.json)
-  // Only check if running on Zo platform (token available)
-  const zoToken = process.env.ZO_CLIENT_IDENTITY_TOKEN;
-  if (zoToken) {
+  // Agent IDs are instance-specific — no REST API to verify from CLI.
+  // Check a local marker file written after agent creation.
+  {
     const monorepoRoot = join(__dirname, '..', '..', '..');
     const manifestPath = join(monorepoRoot, 'agents', 'manifest.json');
+    const markerPath = join(homedir(), '.zouroboros', 'agents-registered.json');
+
     if (existsSync(manifestPath)) {
       try {
         const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-        const agentEntries = Object.entries(manifest.agents || {}) as [string, { zo_id: string; title: string; schedule: { rrule: string }; instruction: string; persona?: string | null; model?: string }][];
-        let registered = 0;
-        let missing = 0;
-        const missingNames: string[] = [];
-        const missingSpecs: typeof agentEntries = [];
+        const agentEntries = Object.entries(manifest.agents || {});
+        const total = agentEntries.length;
 
-        for (const [slug, spec] of agentEntries) {
+        if (existsSync(markerPath)) {
           try {
-            const result = execSync(
-              `curl -sf -H "Authorization: Bearer ${zoToken}" https://api.zo.computer/zo/agents/${spec.zo_id}`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
-            );
-            const agent = JSON.parse(result);
-            if (agent && (agent.id || agent.agent_id)) {
-              registered++;
+            const marker = JSON.parse(readFileSync(markerPath, 'utf-8'));
+            const count = Array.isArray(marker.agents) ? marker.agents.length : 0;
+            if (count >= total) {
+              checks.push({
+                name: 'Scheduled Agents',
+                status: 'ok',
+                message: `${count}/${total} registered (verified at ${marker.registeredAt || 'unknown'})`
+              });
             } else {
-              missing++;
-              missingNames.push(spec.title);
-              missingSpecs.push([slug, spec]);
+              checks.push({
+                name: 'Scheduled Agents',
+                status: 'warning',
+                message: `${count}/${total} registered. Run: zouroboros agents sync`
+              });
             }
           } catch {
-            missing++;
-            missingNames.push(spec.title);
-            missingSpecs.push([slug, spec]);
+            checks.push({
+              name: 'Scheduled Agents',
+              status: 'warning',
+              message: `Marker file corrupt. Run: zouroboros agents sync`
+            });
           }
-        }
-
-        if (missing === 0) {
-          checks.push({
-            name: 'Scheduled Agents',
-            status: 'ok',
-            message: `${registered}/${agentEntries.length} registered on Zo platform`
-          });
         } else {
           checks.push({
             name: 'Scheduled Agents',
             status: 'warning',
-            message: `${registered}/${agentEntries.length} found. Run in Zo chat: "Create all Zouroboros agents from agents/manifest.json"`,
+            message: `${total} agents defined. After creating in Zo Chat, run: zouroboros agents sync`
           });
         }
       } catch {
@@ -288,7 +284,7 @@ CREATE INDEX IF NOT EXISTS idx_open_loops_entity ON open_loops(entity, status);
       checks.push({
         name: 'Scheduled Agents',
         status: 'warning',
-        message: 'agents/manifest.json not found — agent verification skipped'
+        message: 'agents/manifest.json not found'
       });
     }
   }

@@ -63,6 +63,12 @@ Zouroboros includes scheduled agents for daily memory maintenance, self-enhancem
 Create all Zouroboros agents from agents/manifest.json
 ```
 
+Then register them locally so `zouroboros doctor` can verify:
+
+```bash
+zouroboros agents sync
+```
+
 This reads `agents/manifest.json` and registers 5 scheduled agents on your Zo Computer:
 - **Memory Embedding Backfill** — indexes new facts nightly
 - **Memory Capture** — captures conversation facts

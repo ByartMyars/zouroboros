@@ -24,6 +24,7 @@ import { tuiCommand } from './commands/tui.js';
 import { backupCommand } from './commands/backup.js';
 import { migrateCommand } from './commands/migrate.js';
 import { skillsCommand } from './commands/skills.js';
+import { agentsCommand } from './commands/agents.js';
 
 const program = new Command();
 
@@ -57,6 +58,7 @@ program.addCommand(tuiCommand);
 program.addCommand(backupCommand);
 program.addCommand(migrateCommand);
 program.addCommand(skillsCommand);
+program.addCommand(agentsCommand);
 
 // Default action (no command)
 program.action(() => {
