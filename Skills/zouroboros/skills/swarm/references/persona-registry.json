@@ -1,0 +1,84 @@
+{
+  "personas": [
+    {
+      "id": "research-analyst",
+      "name": "Research Analyst",
+      "expertise": ["data gathering", "synthesis", "trend analysis", "market research"],
+      "best_for": ["competitive analysis", "industry trends", "deep research", "literature review"]
+    },
+    {
+      "id": "frontend-developer",
+      "name": "Frontend Developer",
+      "expertise": ["UI/UX", "accessibility", "responsive design", "performance optimization"],
+      "best_for": ["website review", "UI audits", "component design", "frontend architecture"]
+    },
+    {
+      "id": "backend-architect",
+      "name": "Backend Architect",
+      "expertise": ["system design", "API design", "database optimization", "scalability"],
+      "best_for": ["architecture review", "API planning", "infrastructure design", "performance tuning"]
+    },
+    {
+      "id": "security-engineer",
+      "name": "Security Engineer",
+      "expertise": ["security auditing", "threat modeling", "vulnerability assessment", "compliance"],
+      "best_for": ["security review", "penetration testing", "compliance checks", "incident response"]
+    },
+    {
+      "id": "product-manager",
+      "name": "Product Manager",
+      "expertise": ["product strategy", "user stories", "roadmap planning", "stakeholder management"],
+      "best_for": ["feature prioritization", "requirements gathering", "go-to-market", "product review"]
+    },
+    {
+      "id": "data-scientist",
+      "name": "Data Scientist",
+      "expertise": ["data analysis", "statistical modeling", "ML pipelines", "visualization"],
+      "best_for": ["data exploration", "model evaluation", "metric design", "experiment analysis"]
+    },
+    {
+      "id": "devops-engineer",
+      "name": "DevOps Engineer",
+      "expertise": ["CI/CD", "infrastructure", "monitoring", "containerization"],
+      "best_for": ["deployment review", "infrastructure audit", "observability", "automation"]
+    },
+    {
+      "id": "technical-writer",
+      "name": "Technical Writer",
+      "expertise": ["documentation", "API docs", "user guides", "content strategy"],
+      "best_for": ["docs review", "README writing", "API documentation", "knowledge base"]
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "expertise": ["software engineering", "code implementation", "bug fixing", "refactoring", "testing", "code review"],
+      "best_for": ["feature implementation", "codebase refactoring", "test writing", "bug diagnosis", "PR review", "architecture analysis"],
+      "executor": "local",
+      "bridge": "Skills/zo-swarm-executors/bridges/claude-code-bridge.sh"
+    },
+    {
+      "id": "hermes",
+      "name": "Hermes Agent",
+      "expertise": ["autonomous research", "multi-tool investigation", "web scraping", "long-running tasks"],
+      "best_for": ["deep research", "autonomous investigation", "web data gathering", "multi-step analysis"],
+      "executor": "local",
+      "bridge": "Skills/zo-swarm-executors/bridges/hermes-bridge.sh"
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini CLI",
+      "expertise": ["code generation", "reasoning", "multimodal analysis", "large-context processing", "code review", "research"],
+      "best_for": ["large-context code analysis", "multimodal tasks", "alternative perspective review", "cross-validation", "rapid prototyping"],
+      "executor": "local",
+      "bridge": "Skills/zo-swarm-executors/bridges/gemini-bridge.sh"
+    },
+    {
+      "id": "codex",
+      "name": "Codex CLI",
+      "expertise": ["code generation", "shell commands", "file editing", "debugging", "rapid prototyping", "code review"],
+      "best_for": ["fast code tasks", "shell automation", "quick analysis", "rapid iteration", "speed-critical swarm tasks"],
+      "executor": "local",
+      "bridge": "Skills/zo-swarm-executors/bridges/codex-bridge.sh"
+    }
+  ]
+}

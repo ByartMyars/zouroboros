@@ -24,7 +24,24 @@ Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-inst
 
 ## Quick Start
 
-### One-Line Install
+### Skill Install (recommended for Zo Computers)
+
+No clone, no build — just copy the skill and run the installer:
+
+```bash
+# 1. Copy the Skills/zouroboros/ directory to your Zo Computer's ~/Skills/
+#    (included in the monorepo under Skills/zouroboros/)
+
+# 2. Install prerequisites and initialize databases
+bun ~/Skills/zouroboros/scripts/install.ts
+
+# 3. Verify everything is healthy
+bun ~/Skills/zouroboros/scripts/doctor.ts
+```
+
+The skill bundles all 9 sub-skills (68 standalone scripts) that run directly via Bun — no monorepo clone, no `pnpm install`, no TypeScript build step needed. See [Skills/zouroboros/SKILL.md](./Skills/zouroboros/SKILL.md) for full usage.
+
+### One-Line Install (full monorepo)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marlandoj/zouroboros/main/scripts/install.sh | bash

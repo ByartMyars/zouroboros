@@ -1,0 +1,313 @@
+#!/usr/bin/env bun
+/**
+ * memory-gate.ts — Ollama-powered memory relevance filter
+ * 
+ * Takes a user message, uses a local Ollama model to:
+ * 1. Decide if the message needs memory context (yes/no)
+ * 2. Extract search keywords if yes
+ * 3. Runs memory hybrid search and outputs results
+ * 
+ * Exit codes:
+ *   0 = memory results found and printed
+ *   1 = error
+ *   2 = no memory needed (message is trivial/greeting/etc)
+ *   3 = memory needed but no results found
+ */
+
+import { detectContinuation } from "./continuation";
+import { extractWikilinks } from "./wikilink-utils";
+
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const GATE_MODEL = process.env.ZO_GATE_MODEL || "qwen2.5:1.5b";
+const MEMORY_SCRIPT = "/home/workspace/Skills/zo-memory-system/scripts/memory.ts";
+const MAX_RESULTS = 5;
+
+interface GateResponse {
+  needs_memory: boolean;
+  keywords: string[];
+  reason: string;
+}
+
+async function callOllama(message: string): Promise<GateResponse> {
+  const prompt = `You are a classifier. Given a user message, decide if it would benefit from retrieving stored memory/context from previous conversations.
+
+Answer ONLY with valid JSON, no other text.
+
+Rules:
+- Favor recall for ongoing or continuation-like work. Missing relevant prior context is worse than retrieving slightly extra context.
+- Set "needs_memory": true when the message may plausibly continue prior work, ask for status/progress/results, reference an existing project/document/system, or use pronouns/ellipsis that imply prior context.
+- Keep "needs_memory": false for clearly self-contained greetings, trivia, definitions, generic how-to questions, math, or standalone coding prompts.
+- "keywords": 2-6 specific search terms extracted from the message (only if needs_memory is true, empty array otherwise). Never include generic words like "hello", "how", "what".
+- "reason": one short sentence explaining your decision
+
+Examples:
+User: "hello"
+{"needs_memory": false, "keywords": [], "reason": "Simple greeting"}
+
+User: "update the supplier scorecard"
+{"needs_memory": true, "keywords": ["supplier", "scorecard"], "reason": "Likely continuation of an existing workflow"}
+
+User: "where did we leave off on the website review?"
+{"needs_memory": true, "keywords": ["website", "review", "progress"], "reason": "Explicit continuation request"}
+
+User: "check the current zo resources"
+{"needs_memory": false, "keywords": [], "reason": "Self-contained system command"}
+
+Now classify this message:
+User: "${message.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`;
+
+  const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: GATE_MODEL,
+      prompt,
+      stream: false,
+      keep_alive: "24h",
+      options: {
+        temperature: 0.1,
+        num_predict: 150,
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Ollama error: ${resp.status} ${await resp.text()}`);
+  }
+
+  const data = await resp.json();
+  const raw = data.response.trim();
+
+  // Extract JSON from response (handle markdown code blocks)
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error(`Failed to parse Ollama response as JSON: ${raw}`);
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return {
+    needs_memory: Boolean(parsed.needs_memory),
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+    reason: String(parsed.reason || ""),
+  };
+}
+
+async function searchMemory(keywords: string[], preferExact: boolean = false): Promise<string> {
+  const query = keywords.join(" ");
+  const command = preferExact ? "search" : "hybrid";
+  const extraArgs = preferExact ? [] : ["--no-hyde"];
+  const proc = Bun.spawn(
+    ["bun", MEMORY_SCRIPT, command, query, "--limit", String(MAX_RESULTS), ...extraArgs],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    }
+  );
+
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  await proc.exited;
+
+  if (proc.exitCode !== 0 && !preferExact) {
+    const ftsProc = Bun.spawn(
+      ["bun", MEMORY_SCRIPT, "search", query, "--limit", String(MAX_RESULTS)],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+      }
+    );
+    const ftsOut = await new Response(ftsProc.stdout).text();
+    await ftsProc.exited;
+    return ftsOut.trim();
+  }
+
+  return stdout.trim();
+}
+
+async function searchContinuation(message: string): Promise<string> {
+  const proc = Bun.spawn(
+    ["bun", MEMORY_SCRIPT, "continuation", message, "--limit", String(MAX_RESULTS), "--no-hyde"],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    }
+  );
+
+  const stdout = await new Response(proc.stdout).text();
+  await proc.exited;
+  return stdout.trim();
+}
+
+// --- Exported module API (for inline import, no subprocess overhead) ---
+
+export interface GateDecision {
+  inject: boolean;
+  method: string;
+  latency_ms: number;
+}
+
+const KEYWORD_MEMORY_PATTERNS = [
+  /\b(update|check|status|progress|continue|resume|review|where did we|left off|last time)\b/i,
+  /\b(project|system|config|persona|swarm|memory|episode|procedure)\./i,
+  /\b(what happened|how is|show me|find)\b.*\b(with|about|for|in)\b/i,
+];
+
+const KEYWORD_SKIP_PATTERNS = [
+  /^(hi|hello|hey|thanks|thank you|ok|sure|yes|no|bye|goodbye)\s*[!?.]*$/i,
+  /^(what is|define|explain|how to|how do you)\s/i,
+  /^\d+\s*[\+\-\*\/]\s*\d+/,
+];
+
+export async function shouldInjectMemory(taskText: string): Promise<GateDecision> {
+  const start = Date.now();
+
+  // Tier 1: Wikilink fast-path (<1ms)
+  const wikilinks = extractWikilinks(taskText);
+  if (wikilinks.length > 0) {
+    return { inject: true, method: "wikilink_fast_path", latency_ms: Date.now() - start };
+  }
+
+  // Tier 2: Keyword heuristic (<5ms)
+  const hasMemoryKeyword = KEYWORD_MEMORY_PATTERNS.some(p => p.test(taskText));
+  const hasSkipKeyword = KEYWORD_SKIP_PATTERNS.some(p => p.test(taskText));
+  if (hasSkipKeyword && !hasMemoryKeyword) {
+    return { inject: false, method: "keyword_heuristic", latency_ms: Date.now() - start };
+  }
+  if (hasMemoryKeyword) {
+    return { inject: true, method: "keyword_heuristic", latency_ms: Date.now() - start };
+  }
+
+  // Tier 3: Ollama classifier (200ms timeout)
+  try {
+    const gate = await Promise.race([
+      callOllama(taskText),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("gate_timeout")), 200)
+      ),
+    ]);
+    return {
+      inject: gate.needs_memory,
+      method: "ollama_classifier",
+      latency_ms: Date.now() - start,
+    };
+  } catch {
+    // Tier 4: Timeout or error — default to inject (safe fallback)
+    return { inject: true, method: "timeout_default", latency_ms: Date.now() - start };
+  }
+}
+
+// --- CLI entry point (backward compatible) ---
+
+async function main() {
+  const message = process.argv.slice(2).join(" ").trim();
+
+  if (!message) {
+    console.error("Usage: bun memory-gate.ts <user message>");
+    process.exit(1);
+  }
+
+  try {
+    const continuation = detectContinuation(message);
+
+    if (continuation.needsMemory) {
+      const continuationResults = await searchContinuation(message);
+      if (continuationResults && !continuationResults.includes("No continuation context found")) {
+        console.log(continuationResults);
+        process.exit(0);
+      }
+    }
+
+    // Wikilink fast-path: if message contains [[entity]], search directly without Ollama
+    const wikilinks = extractWikilinks(message);
+    if (wikilinks.length > 0) {
+      const wlKeywords = wikilinks.map(wl => wl.entity);
+      const results = await searchMemory(wlKeywords, true);
+      if (results && !results.includes("No results") && !results.includes("Found 0 results") && results.length >= 10) {
+        console.log(`[Memory Context — wikilink fast-path: ${wlKeywords.join(", ")}]`);
+        console.log(results);
+        process.exit(0);
+      }
+    }
+
+    const gate = await callOllama(message);
+
+    if (!gate.needs_memory) {
+      // No memory needed — exit silently
+      process.exit(2);
+    }
+
+    if (gate.keywords.length === 0) {
+      console.error("Gate said memory needed but extracted no keywords");
+      process.exit(3);
+    }
+
+    const results = await searchMemory(gate.keywords, continuation.needsMemory);
+
+    if (!results || results.includes("No results") || results.includes("Found 0 results") || results.length < 10) {
+      process.exit(3);
+    }
+
+    // Output results for injection into context
+    console.log(`[Memory Context — keywords: ${gate.keywords.join(", ")}]`);
+    console.log(results);
+
+    // --- Inline fact extraction (fires after memory injection) ---
+    // Extract conversation context from conversation transcript for fact extraction
+    // First, try to get recent conversation messages from the workspace transcript
+    const INLINE_CAPTURE_SCRIPT = "/home/workspace/Skills/zo-memory-system/scripts/inline-capture.ts";
+    const WORKSPACES_DIR = "/home/.z/workspaces";
+
+    // Try to find the most recent workspace with conversation context
+    let conversationContext = "";
+    try {
+      const { readdirSync, readFileSync, statSync } = await import("fs");
+      const { join } = await import("path");
+      const conDirs = readdirSync(WORKSPACES_DIR).filter(d => d.startsWith("con_"));
+      // Find the most recently active conversation
+      let latestMtime = 0;
+      let latestDir = "";
+      for (const dir of conDirs) {
+        try {
+          const mtime = statSync(join(WORKSPACES_DIR, dir)).mtimeMs;
+          if (mtime > latestMtime) { latestMtime = mtime; latestDir = dir; }
+        } catch { /* skip inaccessible dirs */ }
+      }
+      // Read any transcript or message files in the latest conversation dir
+      if (latestDir) {
+        const recentFiles = readdirSync(join(WORKSPACES_DIR, latestDir)).filter(f =>
+          f.endsWith(".json") || f.endsWith(".md") || f.endsWith(".txt")
+        );
+        for (const f of recentFiles) {
+          try {
+            const content = readFileSync(join(WORKSPACES_DIR, latestDir, f), "utf-8").slice(0, 8000);
+            if (content.length > 200) { conversationContext = content; break; }
+          } catch { /* skip */ }
+        }
+      }
+    } catch { /* workspace read failed — skip context, use message only */ }
+
+    // Spawn inline-capture detached (survives parent exit)
+    const captureSource = `inline:chat/${gate.keywords.join("-")}`;
+    const captureArgs = conversationContext
+      ? ["bun", INLINE_CAPTURE_SCRIPT, "--message", message, "--context", conversationContext, "--source", captureSource]
+      : ["bun", INLINE_CAPTURE_SCRIPT, "--message", message, "--source", captureSource];
+
+    const proc = Bun.spawn(captureArgs, {
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    // Detach so subprocess outlives parent gate process
+    proc.unref();
+
+    process.exit(0);
+
+  } catch (err) {
+    console.error(`memory-gate error: ${err}`);
+    process.exit(1);
+  }
+}
+
+// Only run CLI when invoked directly (not imported as module)
+if (import.meta.main) {
+  main();
+}
