@@ -28,7 +28,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 
@@ -404,7 +404,7 @@ interface CascadeEvent {
 }
 
 interface PartialInputContext {
-  availableOutputs: Array<{ taskId: string; persona: string; summary: string; output?: string }>;
+  availableOutputs: Array<{ taskId: string; executor: string; summary: string; output?: string }>;
   missingDependencies: string[];
   warningAnnotation: string;
   confidenceScore: number; // 0-1 based on % of deps available
@@ -468,7 +468,7 @@ function assemblePartialInputs(
   taskResults: Map<string, TaskResult>
 ): PartialInputContext {
   const deps = task.dependsOn || [];
-  const availableOutputs: Array<{ taskId: string; persona: string; summary: string; output?: string }> = [];
+  const availableOutputs: Array<{ taskId: string; executor: string; summary: string; output?: string }> = [];
   const missingDependencies: string[] = [];
 
   for (const depId of deps) {
@@ -476,12 +476,12 @@ function assemblePartialInputs(
       const result = taskResults.get(depId);
       if (result && result.success) {
         // Extract summary (first 200 chars)
-        const summary = result.output 
+        const summary = result.output
           ? result.output.slice(0, 200).replace(/\s+/g, " ") + "..."
           : "Completed successfully";
         availableOutputs.push({
           taskId: depId,
-          persona: result.task.persona,
+          executor: getEffectiveExecutor(result.task),
           summary,
           output: result.output,
         });
@@ -1326,7 +1326,7 @@ class SwarmOrchestrator {
   private circuitBreakers: Map<string, CircuitBreakerV2> = new Map();
   private backpressureStates: Map<string, BackpressureState> = new Map();
   private results: TaskResult[] = [];
-  private completedOutputs: Array<{ persona: string; category: string; summary: string }> = [];
+  private completedOutputs: Array<{ executor: string; category: string; summary: string }> = [];
   private logger: NdjsonLogger;
   private executors: Record<string, ExecutorCapability> = {};
   private localExecutors: Map<string, LocalExecutor> = new Map();
@@ -1450,15 +1450,47 @@ class SwarmOrchestrator {
       errors.push(`Duplicate task IDs: ${[...new Set(dupes)].join(", ")}`);
     }
 
-    // Verify executor bridges
+    // Run health checks from executor registry — remove unhealthy executors
+    try {
+      if (existsSync(REGISTRY)) {
+        const execRegistry = JSON.parse(readFileSync(REGISTRY, "utf-8"));
+        for (const ex of execRegistry.executors || []) {
+          if (!ex.id || !ex.healthCheck?.command) continue;
+          if (!this.executors[ex.id]) continue; // not loaded, skip
+          try {
+            const hc = spawnSync("bash", ["-c", ex.healthCheck.command], {
+              timeout: 5000,
+              stdio: ["ignore", "pipe", "pipe"],
+            });
+            if (hc.status !== 0) {
+              console.log(`  ⚠ Executor "${ex.id}" failed health check: ${ex.healthCheck.description || ex.healthCheck.command}`);
+              delete this.executors[ex.id];
+            }
+          } catch {
+            console.log(`  ⚠ Executor "${ex.id}" health check timed out`);
+            delete this.executors[ex.id];
+          }
+        }
+      }
+    } catch {}
+
+    // Check that at least one executor is available after health checks
+    const availableExecutors = Object.keys(this.executors);
+    if (availableExecutors.length === 0) {
+      errors.push("No healthy executors available — all failed health checks");
+    }
+
+    // Warn about tasks assigned to unavailable executors (reroute handles at runtime)
+    const unavailableAssignments = new Set<string>();
     for (const task of tasks) {
       const effectiveExec = getEffectiveExecutor(task);
       if (effectiveExec === "auto") continue;
-      
-      const bridge = getBridge(effectiveExec, this.executors);
-      if (!bridge) {
-        errors.push(`No bridge found for executor: ${effectiveExec}`);
+      if (!this.executors[effectiveExec]) {
+        unavailableAssignments.add(effectiveExec);
       }
+    }
+    if (unavailableAssignments.size > 0 && availableExecutors.length > 0) {
+      console.log(`  ⚠ Executor(s) not available: ${[...unavailableAssignments].join(", ")} — tasks will be rerouted to [${availableExecutors.join(", ")}]`);
     }
 
     // Verify DAG dependencies
@@ -1522,7 +1554,9 @@ class SwarmOrchestrator {
     this.totalTaskCount = tasks.length;
 
     console.log(`\n🚀 Swarm ${this.swarmId} v5.0.0`);
+    const availableIds = Object.keys(this.executors);
     console.log(`   Tasks: ${tasks.length} | Concurrency: ${this.config.localConcurrency} | Strategy: ${this.config.routingStrategy}`);
+    console.log(`   Executors: ${availableIds.length} available [${availableIds.join(", ")}]`);
 
     // Campaign locking
     const lockPath = join(LOCK_DIR, `${this.swarmId}.lock`);
@@ -1858,10 +1892,9 @@ class SwarmOrchestrator {
 
   private async executeTaskWithResilience(task: Task, taskResults?: Map<string, TaskResult>): Promise<TaskResult> {
     const startTime = Date.now();
-    const originalPersona = task.persona;
-    const originalExecutor = task.executor;
+    const originalAssignment = { persona: task.persona, executor: task.executor };
     const cat = task.memoryMetadata?.category || "general";
-    
+
     // Check if this is degraded execution
     const isDegraded = taskResults !== undefined && (task.dependsOn || []).some(d => {
       const r = taskResults.get(d);
@@ -1872,31 +1905,33 @@ class SwarmOrchestrator {
     const tried = new Set<string>();
     let recentOutputs: string[] = [];
 
+    // Resolve assigned executor — task.executor takes priority, falls back to task.persona
+    const assignedExec = getEffectiveExecutor(task);
+
     // Get or create circuit breaker
-    const effectiveExec = getEffectiveExecutor(task);
-    if (!this.circuitBreakers.has(effectiveExec)) {
-      this.circuitBreakers.set(effectiveExec, createDefaultCircuitBreaker());
+    if (!this.circuitBreakers.has(assignedExec)) {
+      this.circuitBreakers.set(assignedExec, createDefaultCircuitBreaker());
     }
-    const cb = this.circuitBreakers.get(effectiveExec)!;
+    const cb = this.circuitBreakers.get(assignedExec)!;
 
     // Get or create backpressure state
-    if (!this.backpressureStates.has(effectiveExec)) {
-      this.backpressureStates.set(effectiveExec, createDefaultBackpressure(effectiveExec));
+    if (!this.backpressureStates.has(assignedExec)) {
+      this.backpressureStates.set(assignedExec, createDefaultBackpressure(assignedExec));
     }
-    const bp = this.backpressureStates.get(effectiveExec)!;
+    const bp = this.backpressureStates.get(assignedExec)!;
 
     while (retries <= this.config.maxRetries) {
       // Check circuit breaker
       if (!canAttempt(cb)) {
-        console.log(`  ⏏️  [${task.id}] Circuit OPEN for ${effectiveExec}, waiting...`);
+        console.log(`  ⏏️  [${task.id}] Circuit OPEN for ${assignedExec}, waiting...`);
         await new Promise(r => setTimeout(r, cb.cooldownMs));
         continue;
       }
 
-      // Route to executor
+      // Route to executor — use assigned executor on first try if available, else auto-route
       let exid: string;
-      if (task.persona && task.persona !== "auto" && retries === 0) {
-        exid = task.persona;
+      if (assignedExec !== "auto" && retries === 0 && this.executors[assignedExec]) {
+        exid = assignedExec;
       } else {
         const decision = route(task, this.executors, this.circuitBreakers, this.config.routingStrategy, this.config.useSixSignalRouting);
         exid = decision.executorId;
@@ -1973,11 +2008,11 @@ class SwarmOrchestrator {
         }
 
         // Update completed outputs for cross-task context
-        this.completedOutputs.push({ persona: exid, category: cat, summary: output.slice(0, 300) });
+        this.completedOutputs.push({ executor: exid, category: cat, summary: output.slice(0, 300) });
 
-        // Restore original persona/executor
-        task.persona = originalPersona;
-        if (task.executor !== undefined) task.executor = originalExecutor;
+        // Restore original task assignment
+        task.persona = originalAssignment.persona;
+        task.executor = originalAssignment.executor;
 
         this.logger.log("task_success", { taskId: task.id, executor: exid, durationMs: duration });
 
@@ -2027,8 +2062,8 @@ class SwarmOrchestrator {
       }
     }
 
-    task.persona = originalPersona;
-    if (task.executor !== undefined) task.executor = originalExecutor;
+    task.persona = originalAssignment.persona;
+    task.executor = originalAssignment.executor;
 
     return {
       task,
@@ -2081,7 +2116,7 @@ class SwarmOrchestrator {
         ? this.completedOutputs
         : this.completedOutputs.slice(-this.config.crossTaskContextWindow);
 
-      const entries = window.map(o => `### ${o.persona} (${o.category}):\n${o.summary}`).join("\n\n");
+      const entries = window.map(o => `### ${o.executor} (${o.category}):\n${o.summary}`).join("\n\n");
       crossTaskContext = `## Prior Specialist Findings (${window.length})\n${entries}`;
     }
 
@@ -2128,7 +2163,7 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
       if (crossTaskContext && estimatedTokens > this.config.maxContextTokens) {
         const reduced = this.completedOutputs.slice(-Math.max(1, this.config.crossTaskContextWindow - 1));
         const truncated = `## Prior Specialist Findings (${reduced.length}, trimmed)\n` +
-          reduced.map(o => `### ${o.persona} (${o.category}):\n${o.summary.slice(0, 200)}`).join("\n\n");
+          reduced.map(o => `### ${o.executor} (${o.category}):\n${o.summary.slice(0, 200)}`).join("\n\n");
         fullPrompt = (memoryContext ? memoryContext + "\n\n" : "") + truncated + `\n\n## Your Task\n\n${basePrompt}`;
       }
 
