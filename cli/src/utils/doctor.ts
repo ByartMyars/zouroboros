@@ -2,10 +2,9 @@
  * Doctor utility - Health check for Zouroboros components
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { execSync, spawnSync } from 'child_process';
 import { join, dirname } from 'path';
-import { tmpdir } from 'os';
 import { homedir } from 'os';
 import chalk from 'chalk';
 import { loadConfig, saveConfig, DEFAULT_CONFIG, DEFAULT_MEMORY_DB_PATH } from 'zouroboros-core';
