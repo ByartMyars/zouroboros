@@ -1,3 +1,6 @@
+---
+description: One-command installer that bootstraps the full Zouroboros stack on any Zo Computer.
+---
 # Zouroboros — Self-Enhancing AI Agent Ecosystem
 
 > One-command installer that bootstraps the full Zouroboros stack on any Zo Computer.
@@ -64,7 +67,7 @@ bun skills/memory/scripts/mcp-server.ts
 
 ```bash
 # Run a swarm task
-bun skills/swarm/scripts/orchestrate-v4.ts --plan plan.json
+bun skills/swarm/scripts/orchestrate-v5.ts --plan plan.json
 
 # Start swarm MCP server
 bun skills/swarm/scripts/mcp-server.ts

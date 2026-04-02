@@ -492,7 +492,7 @@ These fields are backward compatible — old history files parse correctly witho
 
 ### Orchestrator Integration (v4.5)
 
-The swarm orchestrator (`orchestrate-v4.ts`) now:
+The swarm orchestrator (`orchestrate-v5.ts`) now:
 1. **Creates episodes** — Every swarm run auto-creates an episode with outcome, duration, executor list, and task tags
 2. **6-signal composite routing** — Adds `procedureScore` (from procedure success rates) and `temporalScore` (from recent episodic performance) to the existing 4-signal composite router
 3. **Cognitive data on outcomes** — Success/failure calls pass error types and entity affinities to executor history

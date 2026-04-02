@@ -18,7 +18,7 @@ Loop forever: propose change → commit → run → measure → keep or revert.
 
 ### From PR #329 (observability + memory)
 - Hebbian association tracking for change categories
-- Circuit breaker for executor health (implemented in orchestrate-v4.ts)
+- Circuit breaker for executor health (implemented in orchestrate-v5.ts)
 - Backpressure monitoring for degraded executors
 
 ### From PR #331 (structured results)

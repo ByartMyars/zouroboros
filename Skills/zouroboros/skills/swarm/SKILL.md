@@ -250,9 +250,7 @@ RAG is automatic and non-blocking. To disable, set `RAG_ENABLED=false` (future r
 | Version | Status | Key Innovation |
 |---------|--------|----------------|
 | **v5.0** | ✅ **Current** | **Dual-engine**: Python (551L, primary) + TypeScript (807L, 0 errors). 6-signal routing, DAG cascade mitigation, memory context injection, wikilinks. P3 cascade-off skips downstream on root failure. |
-| v4.10 | ⚠️ Corrupted | Phase 4 intelligence — stagnation, auto-unstuck, OmniRoute health, wikilinks |
-| v4.5 | ⚠️ Corrupted | Memory-Enriched Routing — local-only execution, 6-signal composite routing |
-| v1–v4 | Archived | Superseded |
+| v1–v4 | ❌ Removed | Superseded by v5. All v4 features ported to orchestrate-v5.ts. |
 
 ---
 
