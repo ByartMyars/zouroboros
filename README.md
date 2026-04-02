@@ -61,6 +61,21 @@ bun ~/Skills/zouroboros/scripts/doctor.ts
 
 The skill bundles 68 standalone scripts across memory, swarm, selfheal, and workflow. See [Skills/zouroboros/SKILL.md](./Skills/zouroboros/SKILL.md) for full usage.
 
+### Create Agents
+
+Zouroboros includes scheduled agents for daily memory maintenance, self-enhancement, and vault indexing. After installation, create them from Zo Chat:
+
+```
+Create all Zouroboros agents from agents/manifest.json
+```
+
+This reads `agents/manifest.json` and registers 5 scheduled agents on your Zo Computer:
+- **Memory Embedding Backfill** — indexes new facts nightly
+- **Memory Capture** — captures conversation facts
+- **Unified Decay** — runs memory decay and cleanup
+- **Self-Enhancement Summary** — daily introspect → prescribe → evolve pipeline
+- **Vault Indexer** — indexes workspace files into the knowledge graph
+
 ## Usage
 
 ### Natural Language (Zo Chat)
