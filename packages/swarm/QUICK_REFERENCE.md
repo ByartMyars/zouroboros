@@ -5,15 +5,15 @@
 ```
 Campaign Size      Command                                      Why
 ─────────────────  ───────────────────────────────────────────  ────────────────────────
-1-5 tasks          bun orchestrate-v4.ts tasks.json             Fast, no timeout risk
+1-5 tasks          bun scripts/orchestrate-v5.ts tasks.json     Fast, no timeout risk
 
-6-10 tasks         bun orchestrate-v4.ts tasks.json             May timeout, get notified
+6-10 tasks         bun scripts/orchestrate-v5.ts tasks.json     May timeout, get notified
                    --notify email                               when done
 
 10+ tasks          bun swarm-hybrid-runner.ts tasks.json        Will timeout, need
                    --notify sms                                 graceful handoff
 
-Background         nohup bun orchestrate-v4.ts tasks.json       Run fully detached
+Background         nohup bun scripts/orchestrate-v5.ts          Run fully detached
 (any size)         --notify sms > /tmp/swarm.log 2>&1 &        from the start
 ```
 
@@ -21,10 +21,13 @@ Background         nohup bun orchestrate-v4.ts tasks.json       Run fully detach
 
 ```bash
 # Check swarm status
-bun orchestrate-v4.ts status <swarm-id>
+bun scripts/orchestrate-v5.ts status <swarm-id>
+
+# Check delegation/routing history
+bun scripts/orchestrate-v5.ts history 10
 
 # System health check
-bun orchestrate-v4.ts doctor
+bun scripts/orchestrate-v5.ts doctor
 
 # View recent results
 ls -lht ~/.swarm/results/ | head -10
@@ -44,6 +47,29 @@ grep localConcurrency config.json
 ❌  Preflight fail  Swarm failed startup checks
 ⏸️   Stopped         Swarm not running (may have crashed)
 ```
+
+For hierarchical runs, `status` also prints:
+
+```text
+Delegated: <parent-count> parent / <child-count> child
+Artifacts: <artifact-count>
+Reroutes: <rerouted-task-count>
+Executors: <effective-executor-list>
+```
+
+## History Command Output Guide
+
+```text
+📚 Swarm Executor History
+   DB: ~/.swarm/executor-history.db
+
+   hermes [validation]
+     Base: 10/12 (83%) avg 800ms
+     Delegation: 6 attempts (83% success)
+     Children: 12/14 (86%) avg count 2.3 avg child 160ms
+```
+
+Use this to inspect whether delegation is helping a given executor/category pair before tuning routing strategy or task design.
 
 ## Notification Behavior
 
@@ -67,7 +93,7 @@ Time     What Happens
 
 13:00    ⏰ "Approaching timeout — switching to background mode"
          📞 "You'll be notified when complete"
-         🔍 "Check status: bun orchestrate-v4.ts status <swarm-id>"
+         🔍 "Check status: bun scripts/orchestrate-v5.ts status <swarm-id>"
 
 [later]  📱 SMS: "Swarm complete! 18/20 tasks succeeded (2 failed)"
               "Duration: 24m 15s"
@@ -90,7 +116,7 @@ Time     What Happens
 
 ### All tasks failing with same error
 **Cause:** Likely a configuration or executor issue  
-**Fix:** Run `bun orchestrate-v4.ts doctor` to diagnose
+**Fix:** Run `bun scripts/orchestrate-v5.ts doctor` to diagnose
 
 ## Configuration Cheat Sheet
 
@@ -108,11 +134,10 @@ Time     What Happens
 
 **Override via CLI:**
 ```bash
-bun orchestrate-v4.ts tasks.json \
+bun scripts/orchestrate-v5.ts tasks.json \
   --concurrency 4 \              # Reduce parallelism
   --timeout 300 \                # 5 min timeout
-  --max-tokens 8000 \            # Smaller context
-  --routing-strategy fast        # Optimize for speed
+  --strategy fast                # Optimize for speed
 ```
 
 ## File Locations
@@ -153,21 +178,21 @@ Campaign Size    Sequential Time    Parallel Time    Speedup
 
 1. **Always specify swarm-id for tracking:**
    ```bash
-   bun orchestrate-v4.ts tasks.json --swarm-id ffb-sourcing-2026-03-12
+   bun scripts/orchestrate-v5.ts tasks.json --swarm-id ffb-sourcing-2026-03-12
    ```
 
 2. **Monitor while running:**
    ```bash
-   watch -n 5 'bun orchestrate-v4.ts status <swarm-id>'
+   watch -n 5 'bun scripts/orchestrate-v5.ts status <swarm-id>'
    ```
 
 3. **Compare routing strategies:**
    ```bash
    # Fast: prioritize speed
-   bun orchestrate-v4.ts tasks.json --routing-strategy fast
+   bun scripts/orchestrate-v5.ts tasks.json --strategy fast
    
    # Reliable: prioritize success rate
-   bun orchestrate-v4.ts tasks.json --routing-strategy reliable
+   bun scripts/orchestrate-v5.ts tasks.json --strategy reliable
    ```
 
 4. **Find swarm by approximate time:**
@@ -177,6 +202,6 @@ Campaign Size    Sequential Time    Parallel Time    Speedup
 
 5. **Check executor health:**
    ```bash
-   bun orchestrate-v4.ts doctor
+   bun scripts/orchestrate-v5.ts doctor
    cat ~/.swarm/executor-history.json | jq
    ```

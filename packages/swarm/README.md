@@ -48,9 +48,24 @@ zouroboros-swarm ./tasks.json
 # With options
 zouroboros-swarm ./tasks.json --mode waves --concurrency 4 --strategy fast
 
+# Inspect a completed run
+zouroboros-swarm status <swarm-id>
+
+# Inspect executor routing and delegation history
+zouroboros-swarm history 10
+
 # Health check
 zouroboros-swarm doctor
 ```
+
+`status <swarm-id>` now surfaces persisted hierarchical telemetry from the results file, including delegated parent count, child task count, artifact count, reroutes, and effective executors.
+
+`history [limit]` reads `executor-history.db` and prints delegation-aware routing history per executor/category, including:
+- base success rate
+- delegated attempt/success rate
+- child success rate
+- average child count
+- average child duration
 
 ## Task Format
 
@@ -96,6 +111,20 @@ Hierarchical delegation is available through an optional `delegation` block on e
 - `mode: "auto"` enables executor-side self-decomposition when policy allows it.
 - Mutation tasks require disjoint `writeScopes`; otherwise they are forced to remain leaf tasks.
 - Results now persist parent/child telemetry, including `delegated`, `effectiveExecutor`, `childRecords`, and artifact lists.
+
+Example status output for a completed hierarchical run:
+
+```text
+🔍 Swarm Status: hierarchical-broader-validation-test
+   Status: complete
+   Results: ~/.swarm/results/hierarchical-broader-validation-test.json
+   Outcome: 4/4 succeeded, 0 failed
+   Duration: 4s
+   Delegated: 3 parent / 5 child
+   Artifacts: 4
+   Reroutes: 1
+   Executors: hermes, claude-code
+```
 
 ## Routing Strategies
 
