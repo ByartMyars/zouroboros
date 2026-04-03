@@ -332,6 +332,12 @@ interface PersistedTelemetrySummary {
   effectiveExecutors: string[];
 }
 
+interface ExecutorHistoryReportRow extends ExecutorHistoryRow {
+  executor: string;
+  category: string;
+  last_updated: number;
+}
+
 function summarizePersistedTelemetry(resultsFile: PersistedResultsFile): PersistedTelemetrySummary {
   const results = resultsFile.results || [];
   const delegatedTasks = typeof resultsFile.delegatedTasks === "number"
@@ -359,6 +365,35 @@ function summarizePersistedTelemetry(resultsFile: PersistedResultsFile): Persist
     reroutedTasks,
     effectiveExecutors,
   };
+}
+
+function readExecutorHistory(limit = 10): ExecutorHistoryReportRow[] {
+  try {
+    ensureExecutorHistorySchema();
+    const db = new Database(HISTORY_DB, { readonly: true });
+    const rows = db.query(
+      `SELECT
+        executor,
+        category,
+        attempts,
+        successes,
+        avg_ms,
+        delegated_attempts,
+        delegated_successes,
+        child_attempts,
+        child_successes,
+        avg_child_count,
+        avg_child_duration_ms,
+        last_updated
+      FROM executor_history
+      ORDER BY delegated_attempts DESC, child_attempts DESC, attempts DESC, last_updated DESC
+      LIMIT ?`,
+    ).all(limit) as ExecutorHistoryReportRow[];
+    db.close();
+    return rows;
+  } catch {
+    return [];
+  }
 }
 
 // Circuit Breaker V2
@@ -2525,6 +2560,42 @@ function statusCmd(swid: string): void {
   }
 }
 
+function historyCmd(limit = 10): void {
+  const rows = readExecutorHistory(limit);
+
+  console.log("📚 Swarm Executor History");
+  console.log(`   DB: ${HISTORY_DB}`);
+
+  if (rows.length === 0) {
+    console.log("   No executor history found.");
+    return;
+  }
+
+  for (const row of rows) {
+    const successRate = row.attempts > 0 ? Math.round((row.successes / row.attempts) * 100) : 0;
+    const delegatedRate = row.delegated_attempts > 0
+      ? Math.round((row.delegated_successes / row.delegated_attempts) * 100)
+      : null;
+    const childRate = row.child_attempts > 0
+      ? Math.round((row.child_successes / row.child_attempts) * 100)
+      : null;
+    const updated = row.last_updated ? new Date(row.last_updated * 1000).toISOString() : "n/a";
+
+    console.log(`\n   ${row.executor} [${row.category}]`);
+    console.log(`     Base: ${row.successes}/${row.attempts} (${successRate}%) avg ${Math.round(row.avg_ms)}ms`);
+    console.log(
+      `     Delegation: ${row.delegated_attempts} attempts`
+      + (delegatedRate !== null ? ` (${delegatedRate}% success)` : ""),
+    );
+    console.log(
+      `     Children: ${row.child_successes}/${row.child_attempts}`
+      + (childRate !== null ? ` (${childRate}%)` : "")
+      + ` avg count ${row.avg_child_count.toFixed(1)} avg child ${Math.round(row.avg_child_duration_ms)}ms`,
+    );
+    console.log(`     Updated: ${updated}`);
+  }
+}
+
 function doctorCmd(): void {
   console.log("🔧 Swarm Doctor v5.0.0\n");
 
@@ -2562,6 +2633,7 @@ async function main(): Promise<void> {
   if (args.length < 1) {
     console.log("Usage: bun orchestrate-v5.ts <tasks.json> [options]");
     console.log("       bun orchestrate-v5.ts status <swarm-id>");
+    console.log("       bun orchestrate-v5.ts history [limit]");
     console.log("       bun orchestrate-v5.ts doctor");
     console.log("\nOptions:");
     console.log("  --swarm-id ID         Set swarm ID");
@@ -2588,6 +2660,12 @@ async function main(): Promise<void> {
 
   if (args[0] === "doctor") {
     doctorCmd();
+    process.exit(0);
+  }
+
+  if (args[0] === "history") {
+    const limit = args[1] ? parseInt(args[1], 10) : 10;
+    historyCmd(Number.isFinite(limit) && limit > 0 ? limit : 10);
     process.exit(0);
   }
 
