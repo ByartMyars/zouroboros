@@ -312,6 +312,55 @@ interface HistorySignal {
   delegationTelemetry: number;
 }
 
+interface PersistedResultsFile {
+  swarmId: string;
+  status?: string;
+  completed?: number;
+  failed?: number;
+  total?: number;
+  delegatedTasks?: number;
+  childTaskCount?: number;
+  elapsedMs?: number;
+  results?: TaskResult[];
+}
+
+interface PersistedTelemetrySummary {
+  delegatedTasks: number;
+  childTaskCount: number;
+  artifactCount: number;
+  reroutedTasks: number;
+  effectiveExecutors: string[];
+}
+
+function summarizePersistedTelemetry(resultsFile: PersistedResultsFile): PersistedTelemetrySummary {
+  const results = resultsFile.results || [];
+  const delegatedTasks = typeof resultsFile.delegatedTasks === "number"
+    ? resultsFile.delegatedTasks
+    : results.filter(result => result.delegated).length;
+  const childTaskCount = typeof resultsFile.childTaskCount === "number"
+    ? resultsFile.childTaskCount
+    : results.reduce((sum, result) => sum + (result.childRecords?.length || 0), 0);
+  const artifactCount = results.reduce((sum, result) => sum + (result.artifacts?.length || 0), 0);
+  const reroutedTasks = results.filter(result => {
+    const requested = result.task.executor;
+    const effective = result.effectiveExecutor;
+    return Boolean(requested && effective && requested !== effective);
+  }).length;
+  const effectiveExecutors = [...new Set(
+    results
+      .map(result => result.effectiveExecutor || result.task.executor)
+      .filter((executor): executor is string => Boolean(executor)),
+  )];
+
+  return {
+    delegatedTasks,
+    childTaskCount,
+    artifactCount,
+    reroutedTasks,
+    effectiveExecutors,
+  };
+}
+
 // Circuit Breaker V2
 interface CircuitBreakerV2 {
   state: "CLOSED" | "OPEN" | "HALF_OPEN";
@@ -2399,6 +2448,12 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
   private async printSummary(totalDurationMs: number): Promise<void> {
     const successful = this.results.filter(r => r.success).length;
     const failed = this.results.filter(r => !r.success).length;
+    const telemetry = summarizePersistedTelemetry({
+      swarmId: this.swarmId,
+      delegatedTasks: this.results.filter(r => r.delegated).length,
+      childTaskCount: this.results.reduce((sum, result) => sum + (result.childRecords?.length || 0), 0),
+      results: this.results,
+    });
 
     console.log("\n" + "=".repeat(60));
     console.log(`📊 Swarm ${this.swarmId} Summary`);
@@ -2407,6 +2462,10 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
     console.log(`   Successful:  ${successful} ✅`);
     console.log(`   Failed:      ${failed} ${failed > 0 ? "❌" : ""}`);
     console.log(`   Duration:    ${Math.round(totalDurationMs / 1000)}s`);
+    console.log(`   Delegated:   ${telemetry.delegatedTasks} parent / ${telemetry.childTaskCount} child`);
+    console.log(`   Artifacts:   ${telemetry.artifactCount}`);
+    console.log(`   Reroutes:    ${telemetry.reroutedTasks}`);
+    console.log(`   Executors:   ${telemetry.effectiveExecutors.join(", ") || "n/a"}`);
     console.log(`   Results:     ${join(RESULTS_DIR, `${this.swarmId}.json`)}`);
     console.log("=".repeat(60));
   }
@@ -2446,6 +2505,23 @@ function statusCmd(swid: string): void {
   if (existsSync(rf)) {
     const stats = readFileSync(rf);
     console.log(`   Results: ${rf} (${Math.round(stats.length / 1024)}KB)`);
+    try {
+      const results = JSON.parse(stats.toString("utf8")) as PersistedResultsFile;
+      const telemetry = summarizePersistedTelemetry(results);
+      const elapsedSeconds = typeof results.elapsedMs === "number" ? Math.round(results.elapsedMs / 1000) : null;
+      const completed = typeof results.completed === "number" ? results.completed : results.results?.filter(result => result.success).length;
+      const failed = typeof results.failed === "number" ? results.failed : results.results?.filter(result => !result.success).length;
+      const total = typeof results.total === "number" ? results.total : results.results?.length;
+
+      console.log(`   Outcome: ${completed ?? 0}/${total ?? 0} succeeded, ${failed ?? 0} failed`);
+      if (elapsedSeconds !== null) {
+        console.log(`   Duration: ${elapsedSeconds}s`);
+      }
+      console.log(`   Delegated: ${telemetry.delegatedTasks} parent / ${telemetry.childTaskCount} child`);
+      console.log(`   Artifacts: ${telemetry.artifactCount}`);
+      console.log(`   Reroutes: ${telemetry.reroutedTasks}`);
+      console.log(`   Executors: ${telemetry.effectiveExecutors.join(", ") || "n/a"}`);
+    } catch {}
   }
 }
 
