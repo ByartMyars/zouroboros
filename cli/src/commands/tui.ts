@@ -6,7 +6,7 @@ export const tuiCommand = new Command('tui')
   .description('Launch Terminal User Interface dashboard')
   .action(() => {
     // Launch the TUI from the separate tui package
-    spawn('bun', [join(__dirname, '../../tui/src/index.ts')], {
+    spawn('bun', [join(__dirname, '../../../tui/src/index.ts')], {
       stdio: 'inherit'
     });
   });
