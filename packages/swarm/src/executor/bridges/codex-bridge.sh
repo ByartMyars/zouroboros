@@ -20,26 +20,9 @@ if [ -f "$HOME/.zo_secrets" ]; then
   source "$HOME/.zo_secrets"
 fi
 
-# --- Dynamic OmniRoute model resolution ---
-# Priority: OmniRoute dynamic > SWARM_RESOLVED_MODEL > CODEX_MODEL > CLI default
+# Priority: SWARM_RESOLVED_MODEL > CODEX_MODEL > CLI default
 RAW_MODEL="${SWARM_RESOLVED_MODEL:-${CODEX_MODEL:-}}"
 TIER="${SWARM_TIER:-}"
-
-# Attempt dynamic resolution via OmniRoute tier-resolve.ts
-TIER_RESOLVE_SCRIPT="/home/workspace/Skills/zo-swarm-orchestrator/scripts/tier-resolve.ts"
-if [ -f "$TIER_RESOLVE_SCRIPT" ] && command -v bun &>/dev/null; then
-  RESOLVED_JSON=$(timeout 15 bun "$TIER_RESOLVE_SCRIPT" --omniroute "$PROMPT" --json 2>/dev/null) || true
-  if [ -n "${RESOLVED_JSON:-}" ]; then
-    OMNIROUTE_COMBO=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('resolvedCombo',''))" 2>/dev/null) || true
-    OMNIROUTE_TIER=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complexity',{}).get('tier',''))" 2>/dev/null) || true
-    if [ -n "${OMNIROUTE_COMBO:-}" ]; then
-      RAW_MODEL="$OMNIROUTE_COMBO"
-    fi
-    if [ -z "$TIER" ] && [ -n "${OMNIROUTE_TIER:-}" ]; then
-      TIER="$OMNIROUTE_TIER"
-    fi
-  fi
-fi
 
 # --- Per-tier timeout resolution ---
 if [ -n "${CODEX_TIMEOUT:-}" ]; then
@@ -54,21 +37,21 @@ else
 fi
 
 # Static fallback: map swarm tier names to Codex model aliases
-# swarm-light  → gpt-4o-mini
-# swarm-mid    → gpt-4o
-# swarm-heavy  → gpt-5.3-codex (o3 is NOT available on ChatGPT Codex accounts)
-# swarm-failover → gpt-4o
+# swarm-light    → gpt-5.1-codex-mini (fast, cheap)
+# swarm-mid      → gpt-5.3-codex     (balanced)
+# swarm-heavy    → gpt-5.4           (frontier)
+# swarm-failover → gpt-5.1-codex-mini
 case "$RAW_MODEL" in
-  swarm-light)    CODEX_MODEL="gpt-4o-mini" ;;
-  swarm-mid)      CODEX_MODEL="gpt-4o" ;;
-  swarm-heavy)    CODEX_MODEL="gpt-5.3-codex" ;;
-  swarm-failover) CODEX_MODEL="gpt-4o" ;;
-  swarm-*)        CODEX_MODEL="gpt-4o" ;;  # Unknown swarm tier → default to gpt-4o
-  light)          CODEX_MODEL="gpt-4o-mini" ;;
-  mid)            CODEX_MODEL="gpt-4o" ;;
-  heavy)          CODEX_MODEL="gpt-5.3-codex" ;;
-  failover)       CODEX_MODEL="gpt-4o" ;;
-  *)              CODEX_MODEL="$RAW_MODEL" ;;  # Pass through other model names
+  swarm-light)    CODEX_MODEL="gpt-5.1-codex-mini" ;;
+  swarm-mid)      CODEX_MODEL="gpt-5.3-codex" ;;
+  swarm-heavy)    CODEX_MODEL="gpt-5.4" ;;
+  swarm-failover) CODEX_MODEL="gpt-5.1-codex-mini" ;;
+  swarm-*)        CODEX_MODEL="gpt-5.1-codex-mini" ;;
+  light)          CODEX_MODEL="gpt-5.1-codex-mini" ;;
+  mid)            CODEX_MODEL="gpt-5.3-codex" ;;
+  heavy)          CODEX_MODEL="gpt-5.4" ;;
+  failover)       CODEX_MODEL="gpt-5.1-codex-mini" ;;
+  *)              CODEX_MODEL="$RAW_MODEL" ;;
 esac
 
 # Resolve codex binary — check PATH
@@ -99,7 +82,7 @@ fi
 # Run codex non-interactively
 # --dangerously-bypass-approvals-and-sandbox enables execution of shell commands without asking
 # --output-last-message ensures we can just read the final response from the file
-timeout "$TIMEOUT" "$CODEX_BIN" exec --dangerously-bypass-approvals-and-sandbox --color never $EXTRA_ARGS --output-last-message "$OUT_FILE" "$PROMPT" 2>"$STDERR_LOG" >/dev/null
+timeout "$TIMEOUT" "$CODEX_BIN" exec --dangerously-bypass-approvals-and-sandbox --color never $EXTRA_ARGS --output-last-message "$OUT_FILE" "$PROMPT" </dev/null 2>"$STDERR_LOG" >/dev/null
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then

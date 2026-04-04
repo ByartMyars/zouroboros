@@ -81,3 +81,19 @@ export {
 
 // Main orchestrator
 export { SwarmOrchestrator } from './orchestrator.js';
+
+// Transport abstraction layer
+export {
+  BridgeTransport,
+} from './transport/bridge-transport.js';
+export { createTransport } from './transport/factory.js';
+export type {
+  ExecutorTransport,
+  SessionUpdate,
+  TransportOptions,
+  HealthStatus,
+  TransportType,
+} from './transport/types.js';
+
+// ACP transport
+export { ACPTransport, type ACPTransportConfig } from './transport/acp-transport.js';

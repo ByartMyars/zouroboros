@@ -7,7 +7,7 @@
  */
 
 import type { Task, TaskResult, SwarmConfig } from '../types.js';
-import type { BridgeExecutor } from '../executor/bridge.js';
+import type { ExecutorTransport } from '../transport/types.js';
 import type { CascadeManager } from '../cascade/manager.js';
 import type { ContextSharingManager } from '../context/sharing.js';
 
@@ -15,7 +15,7 @@ export type ExecutionMode = 'streaming' | 'waves';
 
 export interface ExecutionContext {
   config: SwarmConfig;
-  getExecutor: (executorId: string) => BridgeExecutor | undefined;
+  getExecutor: (executorId: string) => ExecutorTransport | undefined;
   cascadeManager?: CascadeManager;
   contextManager?: ContextSharingManager;
 }

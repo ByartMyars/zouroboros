@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Gemini CLI bridge script — invokes Gemini CLI in one-shot (headless) mode
-# Routes through OmniRoute for access to swarm combos and shared memory via MCP
 # If the gemini-daemon is running, routes through it for ~10x faster startup.
 # Falls back to direct CLI invocation otherwise.
 #
@@ -9,7 +8,7 @@
 #   ./gemini-bridge.sh "Your prompt here" /path/to/workdir
 #
 # Environment:
-#   GEMINI_MODEL       — override model (supports swarm combos or gemini-* models)
+#   GEMINI_MODEL       — override model (supports swarm tier aliases or gemini-* models)
 #   GEMINI_TIMEOUT     — timeout in seconds (default: 300)
 #   GEMINI_NO_DAEMON   — set to '1' to skip daemon and use direct CLI
 
@@ -19,27 +18,10 @@ PROMPT="${1:?Usage: gemini-bridge.sh \"prompt\" [workdir]}"
 WORKDIR="${2:-/home/workspace}"
 DEFAULT_MODEL="gemini-2.5-flash"
 
-# --- Dynamic OmniRoute model resolution ---
-# Priority: OmniRoute dynamic > SWARM_RESOLVED_MODEL > GEMINI_MODEL > default
+# Priority: SWARM_RESOLVED_MODEL > GEMINI_MODEL > default
 _SWARM_MODEL="${SWARM_RESOLVED_MODEL:-}"
 _GEMINI_MODEL="${GEMINI_MODEL:-}"
 TIER="${SWARM_TIER:-}"
-
-# Attempt dynamic resolution via OmniRoute tier-resolve.ts
-TIER_RESOLVE_SCRIPT="/home/workspace/Skills/zo-swarm-orchestrator/scripts/tier-resolve.ts"
-if [ -f "$TIER_RESOLVE_SCRIPT" ] && command -v bun &>/dev/null; then
-  RESOLVED_JSON=$(timeout 15 bun "$TIER_RESOLVE_SCRIPT" --omniroute "$PROMPT" --json 2>/dev/null) || true
-  if [ -n "${RESOLVED_JSON:-}" ]; then
-    OMNIROUTE_COMBO=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('resolvedCombo',''))" 2>/dev/null) || true
-    OMNIROUTE_TIER=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complexity',{}).get('tier',''))" 2>/dev/null) || true
-    if [ -n "${OMNIROUTE_COMBO:-}" ]; then
-      _SWARM_MODEL="$OMNIROUTE_COMBO"
-    fi
-    if [ -z "$TIER" ] && [ -n "${OMNIROUTE_TIER:-}" ]; then
-      TIER="$OMNIROUTE_TIER"
-    fi
-  fi
-fi
 
 # --- Per-tier timeout resolution ---
 if [ -n "${GEMINI_TIMEOUT:-}" ]; then
@@ -55,27 +37,27 @@ fi
 
 # Resolve model: accept only Gemini-native names (gemini-* or gc/*).
 # Map swarm tier names to Gemini model aliases
-# swarm-light  → gemini-2.5-flash
-# swarm-mid    → gemini-3-pro-preview
-# swarm-heavy  → gemini-3-pro-preview
+# swarm-light    → gemini-2.5-flash   (fast, cheap)
+# swarm-mid      → gemini-2.5-pro     (balanced)
+# swarm-heavy    → gemini-2.5-pro     (frontier — no separate Gemini "opus" tier)
 # swarm-failover → gemini-2.5-flash
 
 case "$_SWARM_MODEL" in
   swarm-light)    MODEL="gemini-2.5-flash" ;;
-  swarm-mid)      MODEL="gemini-3-pro-preview" ;;
-  swarm-heavy)    MODEL="gemini-3-pro-preview" ;;
+  swarm-mid)      MODEL="gemini-2.5-pro" ;;
+  swarm-heavy)    MODEL="gemini-2.5-pro" ;;
   swarm-failover) MODEL="gemini-2.5-flash" ;;
   swarm-*)        MODEL="gemini-2.5-flash" ;;
   light)          MODEL="gemini-2.5-flash" ;;
-  mid)            MODEL="gemini-3-pro-preview" ;;
-  heavy)          MODEL="gemini-3-pro-preview" ;;
+  mid)            MODEL="gemini-2.5-pro" ;;
+  heavy)          MODEL="gemini-2.5-pro" ;;
   failover)       MODEL="gemini-2.5-flash" ;;
   gemini*|gc/*|models/*) MODEL="${_SWARM_MODEL#gc/}" ;;
   "")
     case "$_GEMINI_MODEL" in
       swarm-light)    MODEL="gemini-2.5-flash" ;;
-      swarm-mid)      MODEL="gemini-3-pro-preview" ;;
-      swarm-heavy)    MODEL="gemini-3-pro-preview" ;;
+      swarm-mid)      MODEL="gemini-2.5-pro" ;;
+      swarm-heavy)    MODEL="gemini-2.5-pro" ;;
       swarm-failover) MODEL="gemini-2.5-flash" ;;
       swarm-*)        MODEL="gemini-2.5-flash" ;;
       gemini*|gc/*|models/*) MODEL="${_GEMINI_MODEL#gc/}" ;;
@@ -192,41 +174,14 @@ STDERR_LOG="/tmp/gemini-bridge-stderr-$$.log"
 
 CLI_OUTPUT_FILE="/tmp/gemini-bridge-output-$$.txt"
 EXIT_CODE=0
-timeout "$TIMEOUT" "$GEMINI_BIN" -p "$PROMPT" --yolo --output-format text -m "$MODEL" --sandbox=false 2>"$STDERR_LOG" > "$CLI_OUTPUT_FILE" || EXIT_CODE=$?
+timeout "$TIMEOUT" "$GEMINI_BIN" -p "$PROMPT" -m "$MODEL" --yolo --output-format text --sandbox=false 2>"$STDERR_LOG" > "$CLI_OUTPUT_FILE" || EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then
-  echo "BRIDGE_WARN: direct CLI failed (exit=$EXIT_CODE), trying OmniRoute fallback..." >&2
+  echo "BRIDGE_ERROR: direct CLI failed (exit=$EXIT_CODE)" >&2
   CLI_STDERR=$(cat "$STDERR_LOG" 2>/dev/null | head -5)
-  echo "BRIDGE_WARN: CLI stderr: $CLI_STDERR" >&2
+  echo "BRIDGE_ERROR: CLI stderr: $CLI_STDERR" >&2
   rm -f "$STDERR_LOG"
-
-  # --- OmniRoute HTTP fallback ---
-  # Route through OmniRoute proxy which has its own Gemini API keys configured
-  OMNIROUTE_URL="${OMNIROUTE_URL:-http://localhost:20128}"
-  OMNIROUTE_MODEL="gc/$MODEL"
-
-  OR_RESPONSE=$(curl -s --max-time "$TIMEOUT" \
-    -X POST "${OMNIROUTE_URL}/v1/chat/completions" \
-    -H 'Content-Type: application/json' \
-    -d "$(jq -n --arg m "$OMNIROUTE_MODEL" --arg p "$PROMPT" \
-         '{model: $m, messages: [{role: "user", content: $p}], stream: false}')" 2>/dev/null) || true
-
-  if [ -n "$OR_RESPONSE" ]; then
-    OR_ERROR=$(echo "$OR_RESPONSE" | jq -r '.error.message // empty' 2>/dev/null)
-    if [ -z "$OR_ERROR" ]; then
-      OR_CONTENT=$(echo "$OR_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
-      if [ -n "$OR_CONTENT" ]; then
-        echo "$OR_CONTENT"
-        _write_result "success" "$OR_CONTENT"
-        rm -f "$CLI_OUTPUT_FILE"
-        exit 0
-      fi
-    fi
-    echo "BRIDGE_WARN: OmniRoute fallback error: ${OR_ERROR:-empty response}" >&2
-  fi
-
-  echo "BRIDGE_ERROR: all paths failed (direct CLI exit=$EXIT_CODE, OmniRoute fallback failed)" >&2
-  _write_result "failure" "" "all paths failed (direct CLI exit=$EXIT_CODE, OmniRoute fallback failed)"
+  _write_result "failure" "" "direct CLI failed (exit=$EXIT_CODE): $CLI_STDERR"
   rm -f "$CLI_OUTPUT_FILE"
   exit $EXIT_CODE
 fi

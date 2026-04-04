@@ -21,6 +21,7 @@
     "mcp-http": "bun scripts/mcp-server-http.ts"
   },
   "dependencies": {
+    "@agentclientprotocol/sdk": "0.18.0",
     "zouroboros-core": "workspace:*"
   },
   "devDependencies": {
@@ -29,8 +30,15 @@
     "typescript": "^5.0.0"
   },
   "keywords": [
-    "swarm", "orchestration", "multi-agent", "circuit-breaker",
-    "routing", "dag", "tier-resolve", "mcp", "zouroboros"
+    "swarm",
+    "orchestration",
+    "multi-agent",
+    "circuit-breaker",
+    "routing",
+    "dag",
+    "tier-resolve",
+    "mcp",
+    "zouroboros"
   ],
   "license": "MIT",
   "author": "marlandoj.zo.computer"
