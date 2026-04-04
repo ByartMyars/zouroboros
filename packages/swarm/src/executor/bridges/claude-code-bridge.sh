@@ -20,39 +20,43 @@ set -euo pipefail
 PROMPT="${1:?Usage: claude-code-bridge.sh \"prompt\" [workdir]}"
 WORKDIR="${2:-/home/workspace}"
 
-# --- T2: Dynamic OmniRoute model resolution ---
-# Priority: OmniRoute dynamic → SWARM_RESOLVED_MODEL → CLAUDE_CODE_MODEL → CLI default
+# --- T2: Dynamic shared model resolution ---
+# Priority: SWARM_RESOLVED_MODEL → CLAUDE_CODE_MODEL → CLI default
 RAW_MODEL="${SWARM_RESOLVED_MODEL:-${CLAUDE_CODE_MODEL:-}}"
 TIER="${SWARM_TIER:-}"
 
-# Attempt dynamic resolution via OmniRoute tier-resolve.ts
-# Falls back to static mapping if OmniRoute is unreachable or returns error
+# Attempt dynamic resolution via tier-resolve.ts
+# Falls back to static mapping if the resolver is unavailable or returns error
 TIER_RESOLVE_SCRIPT="/home/workspace/Skills/zo-swarm-orchestrator/scripts/tier-resolve.ts"
 if [ -f "$TIER_RESOLVE_SCRIPT" ] && command -v bun &>/dev/null; then
-  RESOLVED_JSON=$(timeout 15 bun "$TIER_RESOLVE_SCRIPT" --omniroute "$PROMPT" --json 2>/dev/null) || true
+  RESOLVED_JSON=$(timeout 15 bun "$TIER_RESOLVE_SCRIPT" "$PROMPT" --json 2>/dev/null) || true
   if [ -n "${RESOLVED_JSON:-}" ]; then
-    OMNIROUTE_COMBO=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('resolvedCombo',''))" 2>/dev/null) || true
-    OMNIROUTE_TIER=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complexity',{}).get('tier',''))" 2>/dev/null) || true
-    if [ -n "${OMNIROUTE_COMBO:-}" ]; then
-      RAW_MODEL="$OMNIROUTE_COMBO"
+    RESOLVED_COMBO=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('resolvedCombo',''))" 2>/dev/null) || true
+    RESOLVED_TIER=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complexity',{}).get('tier',''))" 2>/dev/null) || true
+    if [ -n "${RESOLVED_COMBO:-}" ]; then
+      RAW_MODEL="$RESOLVED_COMBO"
     fi
-    if [ -z "$TIER" ] && [ -n "${OMNIROUTE_TIER:-}" ]; then
-      TIER="$OMNIROUTE_TIER"
+    if [ -z "$TIER" ] && [ -n "${RESOLVED_TIER:-}" ]; then
+      TIER="$RESOLVED_TIER"
     fi
   fi
 fi
 
 # Static fallback: map swarm tier names to Claude Code model aliases
+# swarm-light    → claude-haiku-4-5   (fast, cheap)
+# swarm-mid      → claude-sonnet-4-6  (balanced)
+# swarm-heavy    → claude-opus-4-6    (frontier)
+# swarm-failover → claude-haiku-4-5
 case "$RAW_MODEL" in
-  swarm-light)    CLAUDE_CODE_MODEL="haiku" ;;
-  swarm-mid)      CLAUDE_CODE_MODEL="sonnet" ;;
-  swarm-heavy)    CLAUDE_CODE_MODEL="opus" ;;
-  swarm-failover) CLAUDE_CODE_MODEL="sonnet" ;;
-  swarm-*)        CLAUDE_CODE_MODEL="sonnet" ;;
-  light)          CLAUDE_CODE_MODEL="haiku" ;;
-  mid)            CLAUDE_CODE_MODEL="sonnet" ;;
-  heavy)          CLAUDE_CODE_MODEL="opus" ;;
-  failover)       CLAUDE_CODE_MODEL="sonnet" ;;
+  swarm-light)    CLAUDE_CODE_MODEL="claude-haiku-4-5-20251001" ;;
+  swarm-mid)      CLAUDE_CODE_MODEL="claude-sonnet-4-6" ;;
+  swarm-heavy)    CLAUDE_CODE_MODEL="claude-opus-4-6" ;;
+  swarm-failover) CLAUDE_CODE_MODEL="claude-haiku-4-5-20251001" ;;
+  swarm-*)        CLAUDE_CODE_MODEL="claude-haiku-4-5-20251001" ;;
+  light)          CLAUDE_CODE_MODEL="claude-haiku-4-5-20251001" ;;
+  mid)            CLAUDE_CODE_MODEL="claude-sonnet-4-6" ;;
+  heavy)          CLAUDE_CODE_MODEL="claude-opus-4-6" ;;
+  failover)       CLAUDE_CODE_MODEL="claude-haiku-4-5-20251001" ;;
   "")             CLAUDE_CODE_MODEL="" ;;
   *)              CLAUDE_CODE_MODEL="$RAW_MODEL" ;;
 esac

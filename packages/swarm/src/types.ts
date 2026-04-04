@@ -126,6 +126,7 @@ export interface ExecutorRegistryEntry {
     model?: string;
     envVars?: Record<string, string>;
   };
+  transport?: 'bridge' | 'acp';
   healthCheck?: {
     command: string;
     expectedPattern: string;

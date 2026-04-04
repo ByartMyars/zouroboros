@@ -4,6 +4,7 @@
  *
  * Verifies: bridge exists + executable, health check command passes,
  * required env vars are set, identity file exists (if applicable).
+ * For ACP executors: also validates adapter binary presence.
  *
  * Usage:
  *   bun doctor.ts                  # Check all executors
@@ -19,6 +20,13 @@ const WORKSPACE = process.env.SWARM_WORKSPACE || "/home/workspace";
 const REGISTRY_PATH =
   process.env.SWARM_EXECUTOR_REGISTRY ||
   join(WORKSPACE, "Skills", "zo-swarm-executors", "registry", "executor-registry.json");
+
+/** ACP adapter binary per executor id (gemini uses native --acp flag) */
+const ACP_ADAPTER_BINS: Record<string, string> = {
+  "claude-code": "claude-agent-acp",
+  "codex": "codex-acp",
+  "gemini": "gemini",
+};
 
 interface CheckResult {
   executor: string;
@@ -50,6 +58,29 @@ function checkBridgeExecutable(entry: ExecutorEntry): CheckResult {
   } catch {
     return { executor: entry.id, check: "bridge-executable", status: "fail", detail: `Not executable: ${bridgePath}` };
   }
+}
+
+async function checkACPAdapter(entry: ExecutorEntry & { transport?: string }): Promise<CheckResult | null> {
+  if (entry.transport !== "acp") return null;
+
+  const bin = ACP_ADAPTER_BINS[entry.id] ?? "claude-agent-acp";
+  return new Promise<CheckResult>((resolve) => {
+    const { spawn } = require("child_process");
+    // Use `which` — ACP adapters have no --version flag
+    const proc = spawn("which", [bin], { stdio: "pipe", timeout: 3000 });
+    let out = "";
+    proc.stdout?.on("data", (d: Buffer) => { out += d.toString(); });
+    proc.on("close", (code: number | null) => {
+      if (code === 0) {
+        resolve({ executor: entry.id, check: "acp-adapter", status: "pass", detail: `${bin} at ${out.trim()}` });
+      } else {
+        resolve({ executor: entry.id, check: "acp-adapter", status: "fail", detail: `${bin} not found — install adapter to enable ACP transport` });
+      }
+    });
+    proc.on("error", () => {
+      resolve({ executor: entry.id, check: "acp-adapter", status: "fail", detail: `${bin} not found — install adapter to enable ACP transport` });
+    });
+  });
 }
 
 async function checkHealthCommand(entry: ExecutorEntry): Promise<CheckResult> {
@@ -85,8 +116,7 @@ function checkEnvVars(entry: ExecutorEntry): CheckResult[] {
 
   for (const [varName, desc] of Object.entries(envVars)) {
     const value = process.env[varName];
-    // Env vars in the registry are documentation — only flag "Required" ones
-    const isRequired = desc.toLowerCase().startsWith("required");
+    const isRequired = (desc as string).toLowerCase().startsWith("required");
     if (isRequired && !value) {
       results.push({ executor: entry.id, check: `env:${varName}`, status: "fail", detail: `Missing required: ${desc}` });
     } else if (!value) {
@@ -148,6 +178,10 @@ for (const entry of executors) {
   allResults.push(checkBridgeExists(entry));
   allResults.push(checkBridgeExecutable(entry));
   allResults.push(await checkHealthCommand(entry));
+
+  const acpCheck = await checkACPAdapter(entry as ExecutorEntry & { transport?: string });
+  if (acpCheck) allResults.push(acpCheck);
+
   allResults.push(...checkEnvVars(entry));
 }
 

@@ -18,30 +18,9 @@ WORKDIR="${2:-/home/workspace}"
 PROJECT_DIR="${HERMES_PROJECT_DIR:-/home/workspace/hermes-agent}"
 VENV_ACTIVATE="${HERMES_VENV:-$PROJECT_DIR/.venv/bin/activate}"
 
-# OmniRoute failover — route API calls through OmniRoute proxy
-export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:20128/v1}"
-export OPENAI_API_KEY="${OMNIROUTE_API_KEY:-02cfc434d560577253444213a884d7cdcf4ab142f21aecea51b3a29fff01784b}"
-
-# --- Dynamic OmniRoute model resolution ---
-# Priority: OmniRoute dynamic > SWARM_RESOLVED_MODEL > LLM_MODEL > OmniRoute default
+# Priority: SWARM_RESOLVED_MODEL > LLM_MODEL
 RAW_MODEL="${SWARM_RESOLVED_MODEL:-${LLM_MODEL:-}}"
 TIER="${SWARM_TIER:-}"
-
-# Attempt dynamic resolution via OmniRoute tier-resolve.ts
-TIER_RESOLVE_SCRIPT="/home/workspace/Skills/zo-swarm-orchestrator/scripts/tier-resolve.ts"
-if [ -f "$TIER_RESOLVE_SCRIPT" ] && command -v bun &>/dev/null; then
-  RESOLVED_JSON=$(timeout 15 bun "$TIER_RESOLVE_SCRIPT" --omniroute "$PROMPT" --json 2>/dev/null) || true
-  if [ -n "${RESOLVED_JSON:-}" ]; then
-    OMNIROUTE_COMBO=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('resolvedCombo',''))" 2>/dev/null) || true
-    OMNIROUTE_TIER=$(echo "$RESOLVED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complexity',{}).get('tier',''))" 2>/dev/null) || true
-    if [ -n "${OMNIROUTE_COMBO:-}" ]; then
-      RAW_MODEL="$OMNIROUTE_COMBO"
-    fi
-    if [ -z "$TIER" ] && [ -n "${OMNIROUTE_TIER:-}" ]; then
-      TIER="$OMNIROUTE_TIER"
-    fi
-  fi
-fi
 
 # --- Per-tier timeout resolution ---
 if [ -n "${HERMES_TIMEOUT:-}" ]; then

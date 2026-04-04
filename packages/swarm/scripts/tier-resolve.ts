@@ -118,17 +118,17 @@ export interface ComboRecommendation {
 // ============================================================================
 
 export const TIER_TO_COMBO: Record<ComplexityTier, string> = {
-  trivial: "light",
-  simple: "light",
-  moderate: "mid",
-  complex: "heavy",
+  trivial: "swarm-light",
+  simple: "swarm-light",
+  moderate: "swarm-mid",
+  complex: "swarm-heavy",
 };
 
 export const TIER_CANDIDATES: Record<ComplexityTier, string[]> = {
-  trivial: ["light"],
-  simple: ["light", "mid"],
-  moderate: ["light", "mid", "heavy"],
-  complex: ["light", "mid", "heavy", "failover"],
+  trivial: ["swarm-light"],
+  simple: ["swarm-light", "swarm-mid"],
+  moderate: ["swarm-light", "swarm-mid", "swarm-heavy"],
+  complex: ["swarm-light", "swarm-mid", "swarm-heavy", "swarm-failover"],
 };
 
 const TASK_FITNESS: Record<TaskType, { preferred: string[]; traits: string[] }> = {

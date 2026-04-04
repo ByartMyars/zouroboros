@@ -2031,14 +2031,18 @@ class SwarmOrchestrator {
 
       const timeout = task.timeoutSeconds || this.config.timeoutSeconds;
 
+      // Resolve model tier for this task
+      const { model: resolvedModel, source: modelSource } = await resolveModelDynamic(task, this.config);
+      const complexity = estimateComplexity(task);
+
       // Build optimized prompt
       const prompt = await this.buildOptimizedPrompt(task, exid, retries > 0 ? recentOutputs : []);
 
-      console.log(`  ▶️  [${task.id}] ${exid} (attempt ${retries + 1}/${this.config.maxRetries + 1})`);
+      console.log(`  ▶️  [${task.id}] ${exid} (attempt ${retries + 1}/${this.config.maxRetries + 1}) model=${resolvedModel} [${modelSource}] tier=${complexity.tier}`);
 
       const t0 = Date.now();
       try {
-        const invocation = await this.callLocalAgent(exid, bridge, prompt, timeout);
+        const invocation = await this.callLocalAgent(exid, bridge, prompt, timeout, resolvedModel, complexity.tier);
         const duration = Date.now() - t0;
         const childRecords = invocation.childRecords.map(record => ({
           ...record,
@@ -2292,7 +2296,7 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
   // AGENT COMMUNICATION
   // --------------------------------------------------------------------------
 
-  private async callLocalAgent(executorId: string, bridge: string, prompt: string, timeoutSeconds: number): Promise<LocalAgentInvocation> {
+  private async callLocalAgent(executorId: string, bridge: string, prompt: string, timeoutSeconds: number, resolvedModel?: string, tier?: string): Promise<LocalAgentInvocation> {
     const timeoutMs = timeoutSeconds * 1000;
 
     const resultFileName = `result-${randomUUID()}.json`;
@@ -2304,11 +2308,13 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
       ...process.env,
       RESULT_PATH: resultFilePath,
       SWARM_TASK_ID: executorId,
+      SWARM_RESOLVED_MODEL: resolvedModel || undefined,
+      SWARM_TIER: tier || undefined,
       WORKSPACE,
       HOME,
     };
 
-    const proc = spawn("bash", [bridge, prompt], { env });
+    const proc = spawn("bash", [bridge, prompt], { stdio: ["ignore", "pipe", "pipe"], env });
 
     return new Promise((resolve, reject) => {
       let stdout = "";
