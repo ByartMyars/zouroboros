@@ -177,6 +177,16 @@ else
     echo "   Or run: zouroboros doctor --fix"
 fi
 
+# Install ACP adapters
+echo ""
+echo "🔌 Installing ACP adapters..."
+ACP_SCRIPT="$INSTALL_DIR/packages/swarm/scripts/install-acp-adapters.sh"
+if [ -f "$ACP_SCRIPT" ]; then
+    bash "$ACP_SCRIPT" || echo "⚠️  ACP adapter install encountered issues — run: bash packages/swarm/scripts/install-acp-adapters.sh"
+else
+    echo "⚠️  ACP adapter script not found at $ACP_SCRIPT — skipping"
+fi
+
 # Setup complete
 echo ""
 echo "🎉 Installation complete!"
