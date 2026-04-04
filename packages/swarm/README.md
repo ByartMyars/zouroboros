@@ -19,6 +19,28 @@ npm install zouroboros-swarm
 pnpm add zouroboros-swarm
 ```
 
+### ACP Adapter Prerequisites
+
+The swarm uses the [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol) to communicate with Claude Code, Codex, and Gemini executors. Install the required adapter binaries before running:
+
+```bash
+# Install all ACP adapters
+bash packages/swarm/scripts/install-acp-adapters.sh
+
+# Verify installation
+bash packages/swarm/scripts/install-acp-adapters.sh --check
+
+# Update to latest versions
+bash packages/swarm/scripts/install-acp-adapters.sh --update
+```
+
+| Executor | Adapter | npm Package |
+|---|---|---|
+| Claude Code | `claude-agent-acp` | `@zed-industries/claude-agent-acp` |
+| Codex | `codex-acp` | `@zed-industries/codex-acp` |
+| Gemini | `gemini --acp` | `@google/gemini-cli` |
+| Hermes | bridge (no ACP adapter) | — |
+
 ## Quick Start
 
 ```typescript
