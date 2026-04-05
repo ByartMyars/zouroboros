@@ -445,7 +445,7 @@ async function verifyAC(criterion: AcceptanceCriterion, workspacePath: string, o
       }
       
       if (criterion.pattern) {
-        const regex = new RegExp(criterion.pattern);
+        const regex = new RegExp(criterion.pattern, criterion.pattern_flags || "");
         if (!regex.test(content)) {
           matched = false;
           details = `Pattern not found: ${criterion.pattern}`;
