@@ -16,6 +16,7 @@ import { createHash } from "crypto";
 import { readdir, stat, readFile } from "fs/promises";
 import { join, basename, resolve, relative, dirname } from "path";
 import { parseLinks, type LinkReference } from "./vault-link-parser.ts";
+import { classifyDomain } from "./domain-classifier.ts";
 
 // ── Config ───────────────────────────────────────────────────────────────
 
@@ -313,6 +314,7 @@ async function main() {
   const args = new Set(process.argv.slice(2));
   const fullMode = args.has("--full");
   const dryRun = args.has("--dry-run");
+  const reclassify = args.has("--reclassify");
 
   const startTime = performance.now();
 
@@ -394,15 +396,16 @@ async function main() {
 
   // Prepare statements
   const upsertFile = db.prepare(`
-    INSERT INTO vault_files (id, file_path, title, tags, personas, last_indexed, mtime, link_count, backlink_count)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
+    INSERT INTO vault_files (id, file_path, title, tags, personas, last_indexed, mtime, link_count, backlink_count, domain)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
     ON CONFLICT(id) DO UPDATE SET
       file_path = excluded.file_path,
       title = excluded.title,
       tags = excluded.tags,
       personas = excluded.personas,
       last_indexed = excluded.last_indexed,
-      mtime = excluded.mtime
+      mtime = excluded.mtime,
+      domain = excluded.domain
   `);
 
   const insertLink = db.prepare(`
@@ -427,6 +430,7 @@ async function main() {
         const tags = extractTags(content);
         const personas = resolvePersonas(fp);
 
+        const domain = classifyDomain(fp);
         upsertFile.run(
           id,
           fp,
@@ -435,6 +439,7 @@ async function main() {
           JSON.stringify(personas),
           nowSec,
           mtimeSec,
+          domain,
         );
         filesIndexed++;
       } catch (err) {
@@ -494,6 +499,19 @@ async function main() {
       SELECT COUNT(*) FROM vault_links WHERE target_id = vault_files.id
     );
   `);
+
+  // Reclassify domains on all files if requested
+  if (reclassify) {
+    const allVaultFiles = db.query("SELECT id, file_path FROM vault_files").all() as { id: string; file_path: string }[];
+    const updateDomain = db.prepare("UPDATE vault_files SET domain = ? WHERE id = ?");
+    const reclTx = db.transaction(() => {
+      for (const row of allVaultFiles) {
+        updateDomain.run(classifyDomain(row.file_path), row.id);
+      }
+    });
+    reclTx();
+    console.log(`[vault-index] Reclassified domains for ${allVaultFiles.length} files`);
+  }
 
   // Store run timestamp
   db.exec(`

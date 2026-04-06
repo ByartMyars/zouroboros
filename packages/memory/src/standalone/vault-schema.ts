@@ -38,6 +38,18 @@ if (vfInfo) created.push("vault_files");
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_vault_files_path ON vault_files(file_path);`);
 
+// --- vault_files.domain column (PKA Session Briefing) ---
+const hasDomain = db.query(
+  "SELECT COUNT(*) as cnt FROM pragma_table_info('vault_files') WHERE name='domain'"
+).get() as { cnt: number };
+if (!hasDomain || hasDomain.cnt === 0) {
+  db.exec(`ALTER TABLE vault_files ADD COLUMN domain TEXT DEFAULT 'shared'`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_vault_files_domain ON vault_files(domain)`);
+  created.push("vault_files.domain");
+} else {
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_vault_files_domain ON vault_files(domain)`);
+}
+
 // --- vault_meta ---
 db.exec(`
   CREATE TABLE IF NOT EXISTS vault_meta (

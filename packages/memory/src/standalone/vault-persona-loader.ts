@@ -36,6 +36,7 @@ interface GraphFile {
 
 interface PersonaContext {
   persona: string;
+  domain?: string;
   convention_files: ConventionFile[];
   graph_files: GraphFile[];
   total_files: number;
@@ -51,13 +52,15 @@ interface PersonaSummary {
 // Layer 1: Convention-based loading
 // ---------------------------------------------------------------------------
 
-function loadConventionFiles(db: Database, persona: string): { files: ConventionFile[]; ids: string[] } {
+function loadConventionFiles(db: Database, persona: string, domain?: string): { files: ConventionFile[]; ids: string[] } {
   // Match files where personas JSON array contains the exact slug,
   // or where personas contains "all" (universal files).
+  // Optionally filter by domain.
+  const domainClause = domain ? ` AND domain = '${domain}'` : "";
   const rows = db.prepare(`
     SELECT id, file_path, title, tags
     FROM vault_files
-    WHERE personas LIKE ? OR personas LIKE '%"all"%'
+    WHERE (personas LIKE ? OR personas LIKE '%"all"%')${domainClause}
     ORDER BY backlink_count DESC, link_count DESC
   `).all(`%"${persona}"%`) as Array<{
     id: string;
@@ -165,13 +168,13 @@ function loadGraphFiles(
 // Main: loadPersonaContext
 // ---------------------------------------------------------------------------
 
-export function loadPersonaContext(persona: string): PersonaContext {
+export function loadPersonaContext(persona: string, domain?: string): PersonaContext {
   const start = performance.now();
   const db = new Database(DB_PATH, { readonly: true });
 
   try {
     // Layer 1
-    const { files: convention_files, ids } = loadConventionFiles(db, persona);
+    const { files: convention_files, ids } = loadConventionFiles(db, persona, domain);
     const excludeSet = new Set(ids);
 
     // Layer 2
@@ -181,6 +184,7 @@ export function loadPersonaContext(persona: string): PersonaContext {
 
     return {
       persona,
+      domain,
       convention_files,
       graph_files,
       total_files: convention_files.length + graph_files.length,
@@ -270,14 +274,19 @@ function formatListTable(summaries: PersonaSummary[]): string {
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const jsonFlag = args.includes("--json");
-  const filtered = args.filter(a => a !== "--json");
+  const domainIdx = args.indexOf("--domain");
+  const domainArg = domainIdx >= 0 ? args[domainIdx + 1] : undefined;
+  const filtered = args.filter((a, i) => a !== "--json" && a !== "--domain" && (domainIdx < 0 || i !== domainIdx + 1));
 
   if (filtered.length === 0 || filtered.includes("--help") || filtered.includes("-h")) {
     console.log(`Usage:
-  bun vault-persona-loader.ts <persona-slug>   Load context for a persona
-  bun vault-persona-loader.ts --list           List all personas with file counts
-  bun vault-persona-loader.ts --all            Show coverage for all personas
-  Add --json for JSON output`);
+  bun vault-persona-loader.ts <persona-slug>                Load context for a persona
+  bun vault-persona-loader.ts <persona-slug> --domain ffb   Filter by knowledge domain
+  bun vault-persona-loader.ts --list                        List all personas with file counts
+  bun vault-persona-loader.ts --all                         Show coverage for all personas
+  Add --json for JSON output
+
+  Domains: ffb, jhf-trading, zouroboros, personal, infrastructure, shared`);
     process.exit(0);
   }
 
@@ -292,8 +301,8 @@ if (import.meta.main) {
     const summaries = listPersonas();
     const allContexts: PersonaContext[] = [];
     for (const s of summaries) {
-      if (s.persona === "all") continue; // skip meta-persona
-      allContexts.push(loadPersonaContext(s.persona));
+      if (s.persona === "all") continue;
+      allContexts.push(loadPersonaContext(s.persona, domainArg));
     }
     if (jsonFlag) {
       console.log(JSON.stringify(allContexts, null, 2));
@@ -305,7 +314,7 @@ if (import.meta.main) {
     }
   } else {
     const persona = filtered[0];
-    const ctx = loadPersonaContext(persona);
+    const ctx = loadPersonaContext(persona, domainArg);
     if (jsonFlag) {
       console.log(JSON.stringify(ctx, null, 2));
     } else {

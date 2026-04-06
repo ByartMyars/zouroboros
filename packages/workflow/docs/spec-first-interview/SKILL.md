@@ -7,6 +7,8 @@ metadata:
   author: marlandoj.zo.computer
   origin: https://github.com/Q00/ouroboros
 ---
+
+
 # Spec-First Interview
 
 > Before telling AI what to build, define what should be built.
@@ -124,9 +126,31 @@ For complex or high-stakes work, run the **Ontologist** lens (see `references/on
 3. **Prerequisites** — "What must exist first?"
 4. **Hidden Assumptions** — "What are we assuming? What if the opposite were true?"
 
+### Phase 4: Gap Audit (Post-Implementation)
+
+After implementation passes post-flight eval (see `three-stage-eval` skill), run a **gap audit** before marking the work complete. This phase catches "built but not wired" failures that compile and pass tests but do nothing in production.
+
+**Three mandatory checks:**
+
+| Check | Question | Failure Class |
+|-------|----------|---------------|
+| **Reachability** | Does every new capability have a caller, trigger, or platform wiring that invokes it? | Functions/routes/handlers that exist but are never called |
+| **Data Prerequisites** | Are schemas populated, pools configured, maps seeded, and bootstrap data in place? | Structure without data — tables exist but are empty, configs defined but not loaded |
+| **Cross-Boundary State** | Do env vars, sentinels, or flags survive process boundaries? | State that works in tests (single process) but fails in production (separate processes) |
+
+**Process:**
+1. For each new capability introduced, trace the call chain from platform trigger → function. If no trigger exists, the capability is unreachable.
+2. For each new data structure, verify it contains data — not just schema. Run a sample query.
+3. For each cross-process communication mechanism, verify it works across `bun` invocations (file sentinels in `/dev/shm/`, not env vars).
+
+**Gate:** All three checks must pass. If any fail → fix → re-run post-flight eval on affected components → re-audit. Loop until clean, then close.
+
+**Origin:** This phase was added after the PKA Session Briefing implementation (2026-04-06), where the gap audit caught two "built but not wired" issues across two phases that would have shipped as silent production failures.
+
 ## Integration with Zo Workflows
 
 - **Blog chain**: Run interview before the content-strategist step
 - **Swarm campaigns**: Generate a seed, then decompose into campaign tasks
-- **Service builds**: Interview → seed → implement → evaluate (see `three-stage-eval` skill)
+- **Service builds**: Interview → seed → implement → evaluate → gap audit (see `three-stage-eval` skill)
 - **Persona creation**: Clarify role boundaries and responsibilities before creating identity files
+- **Full pipeline**: interview → seed → eval seed → approve → execute → post-flight eval → gap audit → close

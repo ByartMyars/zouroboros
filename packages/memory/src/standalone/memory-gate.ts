@@ -16,6 +16,8 @@
 
 import { detectContinuation } from "./continuation";
 import { extractWikilinks } from "./wikilink-utils";
+import { getPersonaDomain } from "./domain-map.ts";
+import { generateBriefing } from "./session-briefing.ts";
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const GATE_MODEL = process.env.ZO_GATE_MODEL || "qwen2.5:1.5b";
@@ -158,8 +160,59 @@ const KEYWORD_SKIP_PATTERNS = [
   /^\d+\s*[\+\-\*\/]\s*\d+/,
 ];
 
+export function markBriefingInjected(): void {
+  process.env.BRIEFING_INJECTED = "1";
+}
+
+/**
+ * Generates and returns a session briefing for the given persona.
+ * Call this once at conversation start (first user message) to inject
+ * proactive PKA context. Sets BRIEFING_INJECTED flag so subsequent
+ * shouldInjectMemory() calls skip redundant lookups.
+ *
+ * Returns null if persona is excluded or briefing generation fails.
+ */
+export async function injectSessionBriefing(personaSlug: string): Promise<string | null> {
+  const EXCLUDED_PERSONAS = ["claude-code", "gemini-cli", "hermes-agent", "codex-cli"];
+  if (EXCLUDED_PERSONAS.includes(personaSlug)) return null;
+
+  try {
+    const domain = getPersonaDomain(personaSlug);
+    const effectiveDomain = domain === "shared" || domain === "personal" ? undefined : domain;
+    const result = await generateBriefing(personaSlug, effectiveDomain);
+
+    if (!result.briefing || result.briefing.startsWith("No recent activity")) {
+      return null;
+    }
+
+    // Set the flag so shouldInjectMemory() skips Tier 3 on the first message
+    markBriefingInjected();
+
+    // Format for injection into conversation context
+    const parts: string[] = [
+      `[Session Briefing — ${personaSlug}${effectiveDomain ? ` (${effectiveDomain})` : ""} — ${result.latency_ms}ms]`,
+      result.briefing,
+    ];
+    if (result.active_items.length > 0) {
+      parts.push(`Open items: ${result.active_items.join("; ")}`);
+    }
+    if (result.inherited_facts.length > 0) {
+      parts.push(`Cross-persona: ${result.inherited_facts.join("; ")}`);
+    }
+    return parts.join("\n");
+  } catch {
+    return null;
+  }
+}
+
 export async function shouldInjectMemory(taskText: string): Promise<GateDecision> {
   const start = Date.now();
+
+  // Tier 0: Briefing pre-warm skip — if session briefing was already injected, skip Tier 3
+  if (process.env.BRIEFING_INJECTED === "1") {
+    delete process.env.BRIEFING_INJECTED; // consume the flag (one-shot)
+    return { inject: false, method: "briefing_skip", latency_ms: Date.now() - start };
+  }
 
   // Tier 1: Wikilink fast-path (<1ms)
   const wikilinks = extractWikilinks(taskText);
@@ -196,17 +249,83 @@ export async function shouldInjectMemory(taskText: string): Promise<GateDecision
   }
 }
 
+// --- Sentinel-based once-per-session briefing ---
+
+const BRIEFING_SENTINEL_DIR = "/dev/shm";
+const BRIEFING_SENTINEL_TTL_MS = 10 * 60 * 1000; // 10 minutes = same conversation
+
+function getBriefingSentinelPath(persona: string): string {
+  return `${BRIEFING_SENTINEL_DIR}/zo-briefing-${persona}.flag`;
+}
+
+function isBriefingFresh(persona: string): boolean {
+  try {
+    const { statSync } = require("fs");
+    const stat = statSync(getBriefingSentinelPath(persona));
+    return Date.now() - stat.mtimeMs < BRIEFING_SENTINEL_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
+function markBriefingSentinel(persona: string): void {
+  try {
+    const { writeFileSync } = require("fs");
+    writeFileSync(getBriefingSentinelPath(persona), String(Date.now()));
+  } catch { /* /dev/shm write failed — non-fatal */ }
+}
+
 // --- CLI entry point (backward compatible) ---
 
 async function main() {
-  const message = process.argv.slice(2).join(" ").trim();
+  // Parse --persona flag if present
+  const args = process.argv.slice(2);
+  let personaSlug: string | null = null;
+  const filteredArgs: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--persona" && args[i + 1]) {
+      personaSlug = args[i + 1];
+      i++; // skip value
+    } else if (args[i] === "--briefing" && args[i + 1]) {
+      // Standalone briefing mode
+      const briefing = await injectSessionBriefing(args[i + 1]);
+      if (briefing) {
+        console.log(briefing);
+        process.exit(0);
+      } else {
+        console.error("No briefing generated (excluded persona or no data)");
+        process.exit(2);
+      }
+    } else {
+      filteredArgs.push(args[i]);
+    }
+  }
+
+  const message = filteredArgs.join(" ").trim();
 
   if (!message) {
-    console.error("Usage: bun memory-gate.ts <user message>");
+    console.error("Usage: bun memory-gate.ts <user message>\n       bun memory-gate.ts --persona <slug> <user message>\n       bun memory-gate.ts --briefing <persona-slug>");
     process.exit(1);
   }
 
   try {
+    // Tier 0a: Auto-inject briefing on first call for this persona (sentinel-based)
+    if (personaSlug && !isBriefingFresh(personaSlug)) {
+      const briefing = await injectSessionBriefing(personaSlug);
+      if (briefing) {
+        markBriefingSentinel(personaSlug);
+        console.log(briefing);
+        console.log(""); // blank line separator before normal gate output
+      }
+    }
+
+    // Tier 0b: Briefing pre-warm skip (env-based, for module API callers)
+    if (process.env.BRIEFING_INJECTED === "1") {
+      delete process.env.BRIEFING_INJECTED;
+      console.log(JSON.stringify({ inject: false, method: "briefing_skip", latency_ms: 0 }));
+      process.exit(2);
+    }
+
     const continuation = detectContinuation(message);
 
     if (continuation.needsMemory) {

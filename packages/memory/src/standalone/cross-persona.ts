@@ -11,6 +11,7 @@
  */
 
 import { Database } from "bun:sqlite";
+import { DEFAULT_POOLS } from "./domain-map.ts";
 
 const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
 
@@ -161,6 +162,39 @@ async function main() {
     const results = await searchCrossPersona(db, flags.persona, flags.query);
     if (results.length === 0) { console.log("No results."); }
     else { results.forEach(r => console.log(`  [${(r.persona as string).padEnd(20)}] ${(r.entity as string)}.${(r.key || "_") as string} = ${(r.value as string).slice(0, 80)}`)); }
+  }
+  else if (command === "setup-pools") {
+    const existingPools = listPools(db);
+    const existingNames = new Set(existingPools.map(p => p.name));
+    let created = 0;
+    let membersAdded = 0;
+    for (const pool of DEFAULT_POOLS) {
+      let poolId: string;
+      if (existingNames.has(pool.name)) {
+        const existing = existingPools.find(p => p.name === pool.name)!;
+        poolId = existing.id;
+        console.log(`Pool "${pool.name}" already exists (${existing.personas.length} members)`);
+      } else {
+        poolId = createPool(db, pool.name, pool.description);
+        created++;
+        console.log(`Created pool "${pool.name}": ${poolId.slice(0, 8)}`);
+      }
+      // Add members not already in pool
+      const existingPool = existingPools.find(p => p.name === pool.name);
+      const existingMembers = new Set(existingPool?.personas || []);
+      for (const member of pool.members) {
+        if (!existingMembers.has(member)) {
+          addToPool(db, poolId, member);
+          membersAdded++;
+        }
+      }
+    }
+    console.log(`\nSetup complete: ${created} pools created, ${membersAdded} members added`);
+    // Show final state
+    const finalPools = listPools(db);
+    for (const p of finalPools) {
+      console.log(`  [${p.name}] ${p.personas.length} members, ${p.factCount} facts`);
+    }
   }
   db.close();
 }

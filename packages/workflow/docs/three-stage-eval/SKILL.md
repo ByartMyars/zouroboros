@@ -7,6 +7,8 @@ metadata:
   author: marlandoj.zo.computer
   origin: https://github.com/Q00/ouroboros
 ---
+
+
 # Three-Stage Evaluation Pipeline
 
 > Mechanical → Semantic → Consensus. Each gate must pass before the next.
@@ -189,12 +191,26 @@ For general-purpose quality assessment (not tied to a seed spec), use the **QA J
 
 | Decision | Action |
 |----------|--------|
-| **APPROVED** | Proceed to merge/deploy |
+| **APPROVED** | Proceed to **Gap Audit** (mandatory before close) |
 | **NEEDS WORK** | Fix identified issues, re-evaluate |
 | **REJECTED** (Stage 3) | Consider `unstuck-lateral` skill or re-interview |
 
+## Gap Audit (Post-Eval, Pre-Close)
+
+After Stage 1–3 evaluation passes, run a **gap audit** before marking work complete. This catches "built but not wired" failures — code that compiles, passes tests, but is unreachable in production.
+
+| Check | Question |
+|-------|----------|
+| **Reachability** | Does every new capability have a caller/trigger? |
+| **Data Prerequisites** | Are schemas populated, pools configured, bootstrap data seeded? |
+| **Cross-Boundary State** | Do env vars/sentinels survive process boundaries? |
+
+If any check fails → fix → re-run eval on affected components → re-audit. Loop until clean.
+
+See `spec-first-interview` Phase 4 for the full gap audit protocol.
+
 ## Integration
 
-- Pairs with `spec-first-interview` (interview → seed → build → evaluate)
+- Pairs with `spec-first-interview` (interview → seed → build → evaluate → gap audit → close)
 - Use `unstuck-lateral` if evaluation repeatedly fails
-- Works with swarm orchestrator — add eval step to campaign definitions
+- Works with swarm orchestrator — eval + gap audit are mandatory pipeline stages
