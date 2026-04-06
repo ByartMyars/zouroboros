@@ -17,6 +17,7 @@
     "status": "bun scripts/orchestrate-v5.ts status",
     "bench": "bun scripts/swarm-bench.ts",
     "tier-resolve": "bun scripts/tier-resolve.ts",
+    "dep-graph": "bun scripts/dep-graph.ts",
     "mcp": "bun scripts/mcp-server.ts",
     "mcp-http": "bun scripts/mcp-server-http.ts"
   },

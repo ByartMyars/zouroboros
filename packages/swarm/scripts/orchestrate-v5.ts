@@ -61,6 +61,9 @@ import { HierarchicalMemory, SlidingWindowMemory, MemoryItem, MemoryStrategy } f
 // v5.1: RAG enrichment — auto-inject relevant SDK patterns from Agentic RAG
 import { enrichTaskWithRAG, shouldEnrichWithRAG } from "./rag-enrichment";
 
+// v5.2: Dep-graph — file dependency analysis for write-scope conflict detection
+import { buildDepGraph } from "./dep-graph";
+
 // ============================================================================
 // PATHS & CONFIG
 // ============================================================================
@@ -1673,6 +1676,47 @@ class SwarmOrchestrator {
       }
     }
 
+    // v5.2: Dep-graph cross-task write-scope conflict detection
+    const writeScopeTasks = tasks.filter(t => t.delegation?.writeScopes?.length);
+    if (writeScopeTasks.length > 1) {
+      try {
+        const allWritePaths = new Map<string, string[]>();
+        const allPaths: string[] = [];
+        for (const task of writeScopeTasks) {
+          const paths: string[] = [];
+          for (const scope of task.delegation!.writeScopes!) {
+            paths.push(...scope.paths);
+          }
+          allWritePaths.set(task.id, paths);
+          allPaths.push(...paths);
+        }
+
+        const depGraph = await buildDepGraph({ path: WORKSPACE, impactFiles: allPaths });
+
+        for (let i = 0; i < writeScopeTasks.length; i++) {
+          for (let j = i + 1; j < writeScopeTasks.length; j++) {
+            const tA = writeScopeTasks[i], tB = writeScopeTasks[j];
+            const pathsA = allWritePaths.get(tA.id) || [];
+            const pathsB = allWritePaths.get(tB.id) || [];
+            const radiusA = new Set(pathsA.flatMap(p => depGraph.impactRadius[p] || []));
+            const radiusB = new Set(pathsB.flatMap(p => depGraph.impactRadius[p] || []));
+            const aAffectsB = pathsB.some(p => radiusA.has(p));
+            const bAffectsA = pathsA.some(p => radiusB.has(p));
+            if (aAffectsB || bAffectsA) {
+              const direction = aAffectsB && bAffectsA ? "bidirectional" : aAffectsB ? `${tA.id}→${tB.id}` : `${tB.id}→${tA.id}`;
+              errors.push(`Dep-graph conflict: tasks ${tA.id} and ${tB.id} have overlapping impact radii (${direction}) — add dependsOn to sequence them`);
+            }
+          }
+        }
+
+        if (depGraph.cycles.length > 0) {
+          console.log(`  ⚠️  Dep-graph: ${depGraph.cycles.length} import cycle(s) detected in workspace`);
+        }
+      } catch (e) {
+        console.log(`  ⚠️  Dep-graph analysis skipped: ${e}`);
+      }
+    }
+
     // Check for duplicates
     const ids = tasks.map(t => t.id);
     const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -2482,6 +2526,41 @@ Consider approaching this as a "${stagnation.suggestedPersona}" would.
           }),
         ]
       );
+
+      // Capture child task episodes for hierarchical/delegated runs
+      const now = Math.floor(Date.now() / 1000);
+      for (const result of this.results) {
+        if (!result.childRecords?.length) continue;
+        for (const child of result.childRecords) {
+          const childEpisodeId = randomUUID();
+          const childOutcome = child.status === "success" ? "success" : child.status === "failure" ? "failure" : "ongoing";
+          const childSummary = child.summary
+            ? child.summary
+            : `Child task ${child.childId} (${child.executorId}): ${child.status} in ${Math.round((child.durationMs || 0) / 1000)}s`;
+          db.run(
+            `INSERT OR IGNORE INTO episodes (id,summary,outcome,happened_at,duration_ms,metadata)
+             VALUES (?,?,?,?,?,?)`,
+            [
+              childEpisodeId,
+              childSummary,
+              childOutcome,
+              now,
+              child.durationMs || 0,
+              JSON.stringify({
+                swarm_id: this.swarmId,
+                parent_episode_id: episodeId,
+                parent_task_id: child.parentTaskId,
+                child_id: child.childId,
+                executor_id: child.executorId,
+                delegated_model: child.delegatedModel,
+                source: child.source,
+                artifacts: child.artifacts,
+              }),
+            ]
+          );
+        }
+      }
+
       db.close();
     } catch {}
   }
