@@ -1,6 +1,7 @@
 {
   "name": "zouroboros-persona-creator",
   "version": "2.0.0",
+  "private": true,
   "description": "8-phase persona creation toolkit with templates, examples, and automated setup scripts",
   "type": "module",
   "scripts": {

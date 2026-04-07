@@ -1,7 +1,7 @@
 {
-  "name": "zouroboros-memory",
-  "version": "3.0.0",
-  "description": "Hybrid SQLite + Vector memory system for Zouroboros",
+  "name": "zouroboros-rag",
+  "version": "1.0.0",
+  "description": "Retrieval-Augmented Generation for the Zouroboros ecosystem — swarm, vault, autoloop, eval, and persona context injection",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,20 +12,16 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/marlandoj/zouroboros.git",
-    "directory": "packages/memory"
-  },
-  "bin": {
-    "zouroboros-memory": "./dist/cli.js",
-    "zouroboros-memory-mcp": "./dist/mcp-server.js"
+    "directory": "packages/rag"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "bun test src/",
     "test:coverage": "bun test --coverage src/",
-    "cli": "bun ./src/cli.ts",
-    "mcp": "bun ./src/mcp-server.ts",
-    "typecheck": "tsc --noEmit"
+    "seed": "bun ./scripts/seed-rag-config.ts",
+    "maintenance": "bun ./scripts/daily-rag-maintenance.ts run",
+    "maintenance:status": "bun ./scripts/daily-rag-maintenance.ts status"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"
@@ -36,11 +32,15 @@
   },
   "keywords": [
     "zouroboros",
-    "memory",
-    "sqlite",
+    "rag",
+    "retrieval-augmented-generation",
     "vector-search",
     "embeddings",
-    "episodic-memory"
+    "swarm",
+    "vault",
+    "autoloop",
+    "eval",
+    "persona"
   ],
   "license": "MIT"
 }

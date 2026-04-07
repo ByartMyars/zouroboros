@@ -3,6 +3,17 @@
   "version": "2.0.0",
   "description": "Unified CLI for Zouroboros",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+  },
+  "files": ["dist/", "README.md"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlandoj/zouroboros.git",
+    "directory": "cli"
+  },
   "bin": {
     "zouroboros": "./dist/index.js"
   },

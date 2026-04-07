@@ -1,0 +1,129 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── Build all packages (dependency order) ──────────────────────────
+
+      - name: Build core
+        run: pnpm --filter zouroboros-core build
+
+      - name: Build memory
+        run: pnpm --filter zouroboros-memory build
+
+      - name: Build swarm
+        run: pnpm --filter zouroboros-swarm build
+
+      - name: Build workflow
+        run: pnpm --filter zouroboros-workflow build
+
+      - name: Build selfheal
+        run: pnpm --filter zouroboros-selfheal build
+
+      - name: Build personas
+        run: pnpm --filter zouroboros-personas build
+
+      - name: Build rag
+        run: pnpm --filter zouroboros-rag build
+
+      - name: Build cli
+        run: pnpm --filter zouroboros-cli build
+
+      # ── Typecheck ──────────────────────────────────────────────────────
+
+      - name: Typecheck all
+        run: |
+          pnpm --filter zouroboros-core typecheck
+          pnpm --filter zouroboros-memory typecheck
+          pnpm --filter zouroboros-swarm typecheck
+          pnpm --filter zouroboros-selfheal typecheck
+
+      # ── Test ───────────────────────────────────────────────────────────
+
+      - name: Test all
+        run: |
+          pnpm --filter zouroboros-core test
+          pnpm --filter zouroboros-memory test
+          pnpm --filter zouroboros-swarm test
+          pnpm --filter zouroboros-selfheal test
+
+      # ── Dry run — validate tarballs ────────────────────────────────────
+
+      - name: Pack dry run (validate tarballs)
+        run: |
+          echo "=== Validating package tarballs ==="
+          for pkg in packages/core packages/memory packages/swarm packages/workflow packages/selfheal packages/personas packages/rag cli; do
+            echo "--- $pkg ---"
+            cd $pkg
+            npm pack --dry-run 2>&1
+            cd $GITHUB_WORKSPACE
+          done
+
+      # ── Publish ────────────────────────────────────────────────────────
+
+      - name: Version packages (changesets)
+        if: inputs.dry_run == 'false'
+        run: pnpm changeset version
+
+      - name: Publish to npm
+        if: inputs.dry_run == 'false'
+        run: pnpm changeset publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish dry run
+        if: inputs.dry_run == 'true'
+        run: |
+          echo "=== DRY RUN — would publish these packages ==="
+          for pkg in packages/core packages/memory packages/swarm packages/workflow packages/selfheal packages/personas packages/rag cli; do
+            name=$(cd $pkg && node -p "require('./package.json').name")
+            version=$(cd $pkg && node -p "require('./package.json').version")
+            private=$(cd $pkg && node -p "require('./package.json').private || false")
+            if [ "$private" = "true" ]; then
+              echo "SKIP $name@$version (private)"
+            else
+              echo "WOULD PUBLISH $name@$version"
+            fi
+          done
