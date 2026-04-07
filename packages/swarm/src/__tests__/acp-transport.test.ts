@@ -143,7 +143,10 @@ describe('ACPTransport', () => {
   });
 
   test('executeWithUpdates returns { updates, result } shape', () => {
-    const t = new ACPTransport(mockBridgeEntry, makeCB());
+    // Use an open circuit breaker to prevent spawn — shape test only, no live process
+    const cb = makeCB();
+    for (let i = 0; i < 5; i++) cb.recordFailure('runtime_error');
+    const t = new ACPTransport(mockBridgeEntry, cb);
     const { updates, result } = t.executeWithUpdates(
       { id: 'test', persona: 'claude-code', task: 'test', priority: 'low' },
       { timeoutMs: 100 },

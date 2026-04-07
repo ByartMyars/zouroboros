@@ -8,6 +8,9 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+
+// Skip binary-dependent health checks in CI (binaries not installed in GitHub Actions)
+const itZoOnly = process.env.CI ? test.skip : test;
 import { createTransport } from '../transport/factory.js';
 import { BridgeTransport } from '../transport/bridge-transport.js';
 import { ACPTransport } from '../transport/acp-transport.js';
@@ -70,7 +73,7 @@ describe('Mixed-transport executor set', () => {
     }
   });
 
-  test('claude-code ACP health check finds binary', async () => {
+  itZoOnly('claude-code ACP health check finds binary', async () => {
     const ccTransport = createTransport(
       entry('claude-code', 'Skills/zo-swarm-executors/bridges/claude-code-bridge.sh', 'acp'),
       cb(),
@@ -80,7 +83,7 @@ describe('Mixed-transport executor set', () => {
     expect(health.message).toContain('claude-agent-acp');
   });
 
-  test('codex-acp health check finds binary', async () => {
+  itZoOnly('codex-acp health check finds binary', async () => {
     const codexAcp = createTransport(
       entry('codex', 'Skills/zo-swarm-executors/bridges/codex-bridge.sh', 'acp'),
       cb(),
@@ -90,7 +93,7 @@ describe('Mixed-transport executor set', () => {
     expect(health.message).toContain('codex-acp');
   });
 
-  test('gemini ACP health check finds binary (gemini --acp)', async () => {
+  itZoOnly('gemini ACP health check finds binary (gemini --acp)', async () => {
     const geminiAcp = createTransport(
       entry('gemini', 'Skills/zo-swarm-executors/bridges/gemini-bridge.sh', 'acp'),
       cb(),
