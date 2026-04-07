@@ -33,12 +33,13 @@ import {
   searchOpenLoopsForContinuation,
   upsertOpenLoop,
 } from "./continuation";
+import { generate as mcGenerate, embeddings as mcEmbeddings } from "./model-client";
 
 // --- Configuration ---
 const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+// Model config now handled by model-client.ts; these are kept for status display and SQL defaults
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const EMBEDDING_MODEL = process.env.ZO_EMBEDDING_MODEL || "nomic-embed-text";
-const HYDE_MODEL = process.env.ZO_HYDE_MODEL || "qwen2.5:1.5b";
 
 // Decay class TTLs in seconds
 const TTL_DEFAULTS: Record<string, number | null> = {
@@ -126,7 +127,7 @@ async function initDb(): Promise<Database> {
     CREATE TABLE IF NOT EXISTS fact_embeddings (
       fact_id TEXT PRIMARY KEY REFERENCES facts(id) ON DELETE CASCADE,
       embedding BLOB NOT NULL,
-      model TEXT DEFAULT '${EMBEDDING_MODEL}',
+      model TEXT DEFAULT 'nomic-embed-text',
       created_at INTEGER DEFAULT (strftime('%s', 'now'))
     );
 
@@ -210,25 +211,11 @@ async function runMigration(): Promise<void> {
   }
 }
 
-// --- Embedding Service ---
+// --- Embedding Service (via model-client) ---
 async function getEmbedding(text: string): Promise<number[] | null> {
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: EMBEDDING_MODEL,
-        prompt: text.slice(0, 8000), // Truncate if too long
-      }),
-    });
-    
-    if (!response.ok) {
-      console.warn(`Ollama error: ${response.status}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    return data.embedding;
+    const result = await mcEmbeddings(text.slice(0, 8000));
+    return result.embedding.length > 0 ? result.embedding : null;
   } catch (err) {
     console.warn(`Embedding failed: ${err}`);
     return null;
@@ -237,25 +224,13 @@ async function getEmbedding(text: string): Promise<number[] | null> {
 
 async function hydeExpand(query: string): Promise<string[]> {
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: HYDE_MODEL,
-        prompt: `Query: "${query}"\n\nHypothetical relevant keywords and context (2-3 sentences):`,
-        stream: false,
-        options: {
-          num_predict: 80,
-          temperature: 0.3,
-        }
-      }),
+    const result = await mcGenerate({
+      prompt: `Query: "${query}"\n\nHypothetical relevant keywords and context (2-3 sentences):`,
+      workload: "hyde",
+      temperature: 0.3,
+      maxTokens: 80,
     });
-    
-    if (!response.ok) return [query];
-    
-    const data = await response.json();
-    const expanded = data.response?.trim();
-    
+    const expanded = result.content.trim();
     if (expanded && expanded.length > 10) {
       return [query, expanded];
     }
@@ -473,7 +448,7 @@ async function hybridSearch(
       const embedding = Array.from(new Float32Array(row.embedding.buffer, row.embedding.byteOffset, row.embedding.length / 4));
       const similarity = cosineSimilarity(queryEmbedding, embedding);
       
-      if (similarity > 0.5) { // Threshold
+      if (similarity > 0.35) { // Threshold (lowered from 0.5 to capture more semantic matches)
         const fact = db.prepare("SELECT * FROM facts WHERE id = ?").get(row.fact_id) as Record<string, unknown>;
         if (fact) {
           vectorResults.set(row.fact_id, {
@@ -521,8 +496,10 @@ async function hybridSearch(
 
   for (const [id, result] of scores) {
     let rrfScore = 0;
-    if (result.ftsRank) rrfScore += 1 / (k + result.ftsRank);
+    if (result.ftsRank) rrfScore += 2 / (k + result.ftsRank);  // FTS weighted 2x over vector
     if (result.vecScore) rrfScore += 1 / (k + result.vecScore);
+    // Multi-signal bonus: facts matching both FTS and vector are more relevant
+    if (result.ftsRank && result.vecScore) rrfScore *= 1.5;
 
     const nowSec2 = Math.floor(Date.now() / 1000);
     let freshness = 1;
@@ -974,12 +951,25 @@ async function recordProcedureFeedback(
   }
 }
 
+const MIN_RUNS_FOR_EVOLUTION = 3;
+
 async function evolveProcedure(procedureName: string): Promise<Procedure | null> {
   const db = await initDb();
   const current = await getProcedure(procedureName);
   if (!current) {
     console.error(`Procedure not found: ${procedureName}`);
     return null;
+  }
+
+  // Validation gate: require minimum successful runs before allowing evolution
+  const totalRuns = current.successCount + current.failureCount;
+  if (totalRuns < MIN_RUNS_FOR_EVOLUTION) {
+    console.warn(
+      `Evolution blocked for "${procedureName}" v${current.version}: ` +
+      `only ${totalRuns} run(s) recorded (need ${MIN_RUNS_FOR_EVOLUTION}). ` +
+      `Run the procedure at least ${MIN_RUNS_FOR_EVOLUTION - totalRuns} more time(s) before evolving.`
+    );
+    return current;
   }
 
   // Get failure episodes linked to this procedure
@@ -1017,12 +1007,8 @@ async function evolveProcedure(procedureName: string): Promise<Procedure | null>
   const currentStepsJson = JSON.stringify(current.steps, null, 2);
 
   try {
-    const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: process.env.ZO_EVOLUTION_MODEL || "qwen2.5:7b",
-        prompt: `You are optimizing a multi-step workflow procedure. Given the current steps and recent failures, suggest an improved version.
+    const result = await mcGenerate({
+      prompt: `You are optimizing a multi-step workflow procedure. Given the current steps and recent failures, suggest an improved version.
 
 Current procedure "${procedureName}" v${current.version}:
 ${currentStepsJson}
@@ -1034,17 +1020,14 @@ Success rate: ${current.successCount}/${current.successCount + current.failureCo
 
 Output ONLY a valid JSON array of improved steps. Each step has: executor (string), taskPattern (string), timeoutSeconds (number), fallbackExecutor (string, optional), notes (string, optional).
 Keep the same general structure but adjust executors, timeouts, or add fallbacks based on failure patterns.`,
-        stream: false,
-        options: { temperature: 0.3, num_predict: 1500 },
-        keep_alive: "24h",
-      }),
-      signal: AbortSignal.timeout(60000),
+      workload: "extraction",
+      model: process.env.ZO_EVOLUTION_MODEL,
+      temperature: 0.3,
+      maxTokens: 1500,
+      json: true,
     });
 
-    if (!resp.ok) throw new Error(`Ollama returned ${resp.status}`);
-
-    const data = await resp.json();
-    const text = data.response?.trim() || "";
+    const text = result.content.trim();
 
     // Parse JSON from response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -1062,7 +1045,7 @@ Keep the same general structure but adjust executors, timeouts, or add fallbacks
       notes: s.notes ? String(s.notes) : undefined,
     }));
 
-    // Create evolved procedure
+    // Create evolved procedure (starts with 0 runs — must be validated before trusting)
     const evolved = await createProcedure({
       name: procedureName,
       version: current.version + 1,
@@ -1070,7 +1053,10 @@ Keep the same general structure but adjust executors, timeouts, or add fallbacks
       evolvedFrom: current.id,
     });
 
-    console.log(`Evolved to v${evolved.version} with ${evolved.steps.length} steps`);
+    console.log(
+      `Evolved to v${evolved.version} with ${evolved.steps.length} steps. ` +
+      `⚠️  Unvalidated — run at least ${MIN_RUNS_FOR_EVOLUTION} times before relying on this version.`
+    );
     return evolved;
   } catch (err) {
     console.error(`Evolution failed: ${err}`);

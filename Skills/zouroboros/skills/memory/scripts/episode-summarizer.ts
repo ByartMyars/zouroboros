@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { generate as llmGenerate } from "./model-client";
 /**
  * episode-summarizer.ts — Recursive Episode Summarization for Long Conversations
  * MEM-002: Recursive Episode Summarization
@@ -97,22 +98,13 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "keyOutcomes": ["outcome 1", "outcome 2"]
 }`;
 
-  const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: SUMMARIZE_MODEL,
-      prompt,
-      stream: false,
-      keep_alive: "1h",
-      options: { temperature: 0.3, num_predict: 400 },
-    }),
+  const result = await llmGenerate({
+    prompt,
+    workload: "summarization",
+    temperature: 0.3,
+    maxTokens: 400,
   });
-
-  if (!resp.ok) throw new Error(`Ollama error: ${resp.status}`);
-
-  const data = await resp.json() as { response: string };
-  const raw = data.response.trim();
+  const raw = result.content;
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error(`Failed to parse summary JSON: ${raw.slice(0, 200)}`);
 

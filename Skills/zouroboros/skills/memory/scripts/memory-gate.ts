@@ -15,10 +15,11 @@
  */
 
 import { detectContinuation } from "./continuation";
+import { generate } from "./model-client";
 import { extractWikilinks } from "./wikilink-utils";
+import { getPersonaDomain } from "./domain-map.ts";
+import { generateBriefing } from "./session-briefing.ts";
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
-const GATE_MODEL = process.env.ZO_GATE_MODEL || "qwen2.5:1.5b";
 const MEMORY_SCRIPT = "/home/workspace/Skills/zo-memory-system/scripts/memory.ts";
 const MAX_RESULTS = 5;
 
@@ -56,32 +57,16 @@ User: "check the current zo resources"
 Now classify this message:
 User: "${message.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`;
 
-  const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: GATE_MODEL,
-      prompt,
-      stream: false,
-      keep_alive: "24h",
-      options: {
-        temperature: 0.1,
-        num_predict: 150,
-      },
-    }),
+  // Route through model-client: picks up ZO_MODEL_GATE from env, defaults to ollama:qwen2.5:1.5b
+  const result = await generate({
+    prompt,
+    workload: "gate",
   });
 
-  if (!resp.ok) {
-    throw new Error(`Ollama error: ${resp.status} ${await resp.text()}`);
-  }
-
-  const data = await resp.json();
-  const raw = data.response.trim();
-
-  // Extract JSON from response (handle markdown code blocks)
+  const raw = result.content.trim();
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error(`Failed to parse Ollama response as JSON: ${raw}`);
+    throw new Error(`Failed to parse gate response as JSON: ${raw}`);
   }
 
   const parsed = JSON.parse(jsonMatch[0]);
@@ -95,7 +80,7 @@ User: "${message.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`;
 async function searchMemory(keywords: string[], preferExact: boolean = false): Promise<string> {
   const query = keywords.join(" ");
   const command = preferExact ? "search" : "hybrid";
-  const extraArgs = preferExact ? [] : ["--no-hyde"];
+  const extraArgs: string[] = [];
   const proc = Bun.spawn(
     ["bun", MEMORY_SCRIPT, command, query, "--limit", String(MAX_RESULTS), ...extraArgs],
     {
@@ -126,7 +111,7 @@ async function searchMemory(keywords: string[], preferExact: boolean = false): P
 
 async function searchContinuation(message: string): Promise<string> {
   const proc = Bun.spawn(
-    ["bun", MEMORY_SCRIPT, "continuation", message, "--limit", String(MAX_RESULTS), "--no-hyde"],
+    ["bun", MEMORY_SCRIPT, "continuation", message, "--limit", String(MAX_RESULTS)],
     {
       stdout: "pipe",
       stderr: "pipe",
@@ -147,19 +132,84 @@ export interface GateDecision {
 }
 
 const KEYWORD_MEMORY_PATTERNS = [
-  /\b(update|check|status|progress|continue|resume|review|where did we|left off|last time)\b/i,
+  /\b(update|check|status|progress|continue|resume|review|where did we|left off|last time|remind|current|decided?)\b/i,
   /\b(project|system|config|persona|swarm|memory|episode|procedure)\./i,
-  /\b(what happened|how is|show me|find)\b.*\b(with|about|for|in)\b/i,
+  /\b(what happened|how is|show me|find)\b.*\b(with|about|for|in|doing|going)\b/i,
+  /\b(remind me|what did we|where did we)\b/i,
 ];
 
 const KEYWORD_SKIP_PATTERNS = [
   /^(hi|hello|hey|thanks|thank you|ok|sure|yes|no|bye|goodbye)\s*[!?.]*$/i,
   /^(what is|define|explain|how to|how do you)\s/i,
   /^\d+\s*[\+\-\*\/]\s*\d+/,
+  /^good (morning|afternoon|evening)\b/i,
+  /^(thanks|thank you) for\b/i,
+  /^(write|create|build|implement|generate|code)\b.+\b(function|class|method|script|program|algorithm|component|module|app)\b/i,
 ];
+
+/** Extract search keywords from a message by removing stop words */
+function extractKeywordsFromMessage(message: string): string[] {
+  const STOP_WORDS = new Set(["the","a","an","is","are","was","were","be","been","have","has","had","do","does","did","will","would","could","should","may","can","to","of","in","for","on","with","at","by","from","about","how","what","where","when","who","why","which","that","this","it","its","me","my","we","our","you","your","he","she","they","them","and","but","or","if","so","up","out","no","not","just","get","got","let","going","doing"]);
+  return message
+    .toLowerCase()
+    .replace(/[?!.,;:'"]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+export function markBriefingInjected(): void {
+  process.env.BRIEFING_INJECTED = "1";
+}
+
+/**
+ * Generates and returns a session briefing for the given persona.
+ * Call this once at conversation start (first user message) to inject
+ * proactive PKA context. Sets BRIEFING_INJECTED flag so subsequent
+ * shouldInjectMemory() calls skip redundant lookups.
+ *
+ * Returns null if persona is excluded or briefing generation fails.
+ */
+export async function injectSessionBriefing(personaSlug: string): Promise<string | null> {
+  const EXCLUDED_PERSONAS = ["claude-code", "gemini-cli", "hermes-agent", "codex-cli"];
+  if (EXCLUDED_PERSONAS.includes(personaSlug)) return null;
+
+  try {
+    const domain = getPersonaDomain(personaSlug);
+    const effectiveDomain = domain === "shared" || domain === "personal" ? undefined : domain;
+    const result = await generateBriefing(personaSlug, effectiveDomain);
+
+    if (!result.briefing || result.briefing.startsWith("No recent activity")) {
+      return null;
+    }
+
+    // Set the flag so shouldInjectMemory() skips Tier 3 on the first message
+    markBriefingInjected();
+
+    // Format for injection into conversation context
+    const parts: string[] = [
+      `[Session Briefing — ${personaSlug}${effectiveDomain ? ` (${effectiveDomain})` : ""} — ${result.latency_ms}ms]`,
+      result.briefing,
+    ];
+    if (result.active_items.length > 0) {
+      parts.push(`Open items: ${result.active_items.join("; ")}`);
+    }
+    if (result.inherited_facts.length > 0) {
+      parts.push(`Cross-persona: ${result.inherited_facts.join("; ")}`);
+    }
+    return parts.join("\n");
+  } catch {
+    return null;
+  }
+}
 
 export async function shouldInjectMemory(taskText: string): Promise<GateDecision> {
   const start = Date.now();
+
+  // Tier 0: Briefing pre-warm skip — if session briefing was already injected, skip Tier 3
+  if (process.env.BRIEFING_INJECTED === "1") {
+    delete process.env.BRIEFING_INJECTED; // consume the flag (one-shot)
+    return { inject: false, method: "briefing_skip", latency_ms: Date.now() - start };
+  }
 
   // Tier 1: Wikilink fast-path (<1ms)
   const wikilinks = extractWikilinks(taskText);
@@ -196,17 +246,83 @@ export async function shouldInjectMemory(taskText: string): Promise<GateDecision
   }
 }
 
+// --- Sentinel-based once-per-session briefing ---
+
+const BRIEFING_SENTINEL_DIR = "/dev/shm";
+const BRIEFING_SENTINEL_TTL_MS = 10 * 60 * 1000; // 10 minutes = same conversation
+
+function getBriefingSentinelPath(persona: string): string {
+  return `${BRIEFING_SENTINEL_DIR}/zo-briefing-${persona}.flag`;
+}
+
+function isBriefingFresh(persona: string): boolean {
+  try {
+    const { statSync } = require("fs");
+    const stat = statSync(getBriefingSentinelPath(persona));
+    return Date.now() - stat.mtimeMs < BRIEFING_SENTINEL_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
+function markBriefingSentinel(persona: string): void {
+  try {
+    const { writeFileSync } = require("fs");
+    writeFileSync(getBriefingSentinelPath(persona), String(Date.now()));
+  } catch { /* /dev/shm write failed — non-fatal */ }
+}
+
 // --- CLI entry point (backward compatible) ---
 
 async function main() {
-  const message = process.argv.slice(2).join(" ").trim();
+  // Parse --persona flag if present
+  const args = process.argv.slice(2);
+  let personaSlug: string | null = null;
+  const filteredArgs: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--persona" && args[i + 1]) {
+      personaSlug = args[i + 1];
+      i++; // skip value
+    } else if (args[i] === "--briefing" && args[i + 1]) {
+      // Standalone briefing mode
+      const briefing = await injectSessionBriefing(args[i + 1]);
+      if (briefing) {
+        console.log(briefing);
+        process.exit(0);
+      } else {
+        console.error("No briefing generated (excluded persona or no data)");
+        process.exit(2);
+      }
+    } else {
+      filteredArgs.push(args[i]);
+    }
+  }
+
+  const message = filteredArgs.join(" ").trim();
 
   if (!message) {
-    console.error("Usage: bun memory-gate.ts <user message>");
+    console.error("Usage: bun memory-gate.ts <user message>\n       bun memory-gate.ts --persona <slug> <user message>\n       bun memory-gate.ts --briefing <persona-slug>");
     process.exit(1);
   }
 
   try {
+    // Tier 0a: Auto-inject briefing on first call for this persona (sentinel-based)
+    if (personaSlug && !isBriefingFresh(personaSlug)) {
+      const briefing = await injectSessionBriefing(personaSlug);
+      if (briefing) {
+        markBriefingSentinel(personaSlug);
+        console.log(briefing);
+        console.log(""); // blank line separator before normal gate output
+      }
+    }
+
+    // Tier 0b: Briefing pre-warm skip (env-based, for module API callers)
+    if (process.env.BRIEFING_INJECTED === "1") {
+      delete process.env.BRIEFING_INJECTED;
+      console.log(JSON.stringify({ inject: false, method: "briefing_skip", latency_ms: 0 }));
+      process.exit(2);
+    }
+
     const continuation = detectContinuation(message);
 
     if (continuation.needsMemory) {
@@ -229,6 +345,28 @@ async function main() {
       }
     }
 
+    // Keyword heuristic: deterministic pre-check before Ollama
+    const hasMemoryKw = KEYWORD_MEMORY_PATTERNS.some(p => p.test(message));
+    const hasSkipKw = KEYWORD_SKIP_PATTERNS.some(p => p.test(message));
+
+    if (hasSkipKw && !hasMemoryKw) {
+      process.exit(2);
+    }
+
+    if (hasMemoryKw) {
+      const keywords = extractKeywordsFromMessage(message);
+      if (keywords.length > 0) {
+        const results = await searchMemory(keywords, continuation.needsMemory);
+        if (results && !results.includes("No results") && !results.includes("Found 0 results") && results.length >= 10) {
+          console.log(`[Memory Context — keywords: ${keywords.join(", ")}]`);
+          console.log(results);
+          process.exit(0);
+        }
+        process.exit(3); // memory needed but nothing found
+      }
+    }
+
+    // Ollama classifier (fallback for ambiguous cases)
     const gate = await callOllama(message);
 
     if (!gate.needs_memory) {

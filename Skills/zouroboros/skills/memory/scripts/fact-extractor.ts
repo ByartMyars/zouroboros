@@ -7,6 +7,7 @@
  *   extractFactsFromText()  — extract facts only (no DB write, for dry-run/preview)
  */
 
+import { generate as llmGenerate, embeddings as llmEmbed } from "./model-client";
 import { Database } from "bun:sqlite";
 import { randomUUID, createHash } from "crypto";
 import {
@@ -19,9 +20,6 @@ import {
 
 // --- Configuration ---
 export const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
-const CAPTURE_MODEL = process.env.ZO_CAPTURE_MODEL || "qwen2.5:7b";
-const CAPTURE_FALLBACK_MODEL = "qwen2.5:3b";
 const EMBEDDING_MODEL = process.env.ZO_EMBEDDING_MODEL || "nomic-embed-text";
 
 const MIN_CONFIDENCE = 0.6;
@@ -111,15 +109,6 @@ export function getExtractorDb(): Database {
 
 // --- Ollama ---
 
-async function checkModelAvailable(model: string): Promise<boolean> {
-  try {
-    const resp = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(5000) });
-    if (!resp.ok) return false;
-    const data = await resp.json();
-    return data.models?.some((m: any) => m.name === model || m.name.startsWith(model + ":"));
-  } catch { return false; }
-}
-
 const EXTRACTION_PROMPT = `You are a fact extractor. Given a conversation or document, extract structured, reusable facts.
 
 Rules:
@@ -136,27 +125,17 @@ Output ONLY a valid JSON array with: entity, key, value, category, decay_class, 
 Return [ ] if nothing worth extracting.
 `;
 
-export async function extractFactsFromText(text: string, model?: string): Promise<CapturedFact[]> {
-  const chosenModel = model || CAPTURE_MODEL;
+export async function extractFactsFromText(text: string): Promise<CapturedFact[]> {
   const prompt = `${EXTRACTION_PROMPT}\n\nTranscript:\n---\n${text.slice(0, MAX_TRANSCRIPT_TOKENS)}\n---`;
 
   try {
-    const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: chosenModel,
-        prompt,
-        stream: false,
-        options: { temperature: 0.1, num_predict: 2000 },
-        keep_alive: "24h",
-      }),
-      signal: AbortSignal.timeout(60000),
+    const result = await llmGenerate({
+      prompt,
+      workload: "extraction",
+      temperature: 0.1,
+      maxTokens: 2000,
     });
-
-    if (!resp.ok) throw new Error(`Ollama returned ${resp.status}`);
-    const data = await resp.json();
-    const raw = data.response?.trim() || "";
+    const raw = result.content.trim();
 
     let jsonStr = raw;
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
@@ -197,15 +176,8 @@ function validateDecay(d: string): DecayClass {
 
 async function getEmbedding(text: string): Promise<number[] | null> {
   try {
-    const resp = await fetch(`${OLLAMA_URL}/api/embeddings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: EMBEDDING_MODEL, prompt: text.slice(0, 8000) }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data.embedding;
+    const result = await llmEmbed(text.slice(0, 8000));
+    return result.embedding ?? null;
   } catch { return null; }
 }
 
@@ -247,17 +219,8 @@ export async function extractAndStoreFacts(
     return { stored: [], skipped: [], contradictions: 0, links_created: 0, duration_ms: 0, source: options.source };
   }
 
-  // Model selection
-  let model = CAPTURE_MODEL;
-  let modelAvailable = await checkModelAvailable(model);
-  if (!modelAvailable) {
-    model = CAPTURE_FALLBACK_MODEL;
-    modelAvailable = await checkModelAvailable(model);
-  }
-
-  const candidates = modelAvailable
-    ? await extractFactsFromText(text, model)
-    : [];
+  // Model selection: model-client handles provider routing + fallback via ZO_MODEL_EXTRACTION
+  const candidates = await extractFactsFromText(text);
 
   const stored: CapturedFact[] = [];
   const skipped: Array<{ fact: CapturedFact; reason: string }> = [];
@@ -349,7 +312,7 @@ export async function extractAndStoreFacts(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       randomUUID(), options.source, hash, stored.length, skipped.length,
-      contradictions, model, duration_ms, options.captureMode
+      contradictions, "model-client", duration_ms, options.captureMode
     );
   }
 

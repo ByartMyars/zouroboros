@@ -123,8 +123,8 @@ export function computeGraphBoost(db: Database, results: ScoredResult[]): Booste
     const rawBoost = boostMap.get(r.id) || 0;
     const graphBoost = Math.min(rawBoost / maxBoost, 1.0);
 
-    // Reweighted composite: RRF(0.60) + Graph(0.15) + Freshness(0.15) + Confidence(0.10)
-    const composite = r.rrfScore * 0.6 + graphBoost * 0.15 + r.freshness * 0.15 + r.confidence * 0.1;
+    // Reweighted composite: RRF(0.70) + Graph(0.05) + Freshness(0.15) + Confidence(0.10)
+    const composite = r.rrfScore * 0.7 + graphBoost * 0.05 + r.freshness * 0.15 + r.confidence * 0.1;
 
     return {
       ...r,
