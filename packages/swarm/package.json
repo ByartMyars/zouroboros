@@ -19,7 +19,8 @@
     "tier-resolve": "bun scripts/tier-resolve.ts",
     "dep-graph": "bun scripts/dep-graph.ts",
     "mcp": "bun scripts/mcp-server.ts",
-    "mcp-http": "bun scripts/mcp-server-http.ts"
+    "mcp-http": "bun scripts/mcp-server-http.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "0.18.0",

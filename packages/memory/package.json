@@ -15,7 +15,8 @@
     "test": "bun test src/",
     "test:coverage": "bun test --coverage src/",
     "cli": "bun ./src/cli.ts",
-    "mcp": "bun ./src/mcp-server.ts"
+    "mcp": "bun ./src/mcp-server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "zouroboros-core": "workspace:*"

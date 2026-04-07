@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -32,19 +32,57 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build core package
+      # ── Build (core must come first — other packages depend on it) ──────────
+
+      - name: Build core
         run: pnpm --filter zouroboros-core build
 
-      - name: Typecheck
+      - name: Build memory
+        run: pnpm --filter zouroboros-memory build
+
+      - name: Build swarm
+        run: pnpm --filter zouroboros-swarm build
+
+      - name: Build workflow
+        run: pnpm --filter zouroboros-workflow build
+
+      - name: Build selfheal
+        run: pnpm --filter zouroboros-selfheal build
+
+      # ── Typecheck ────────────────────────────────────────────────────────────
+
+      - name: Typecheck core
         run: pnpm --filter zouroboros-core typecheck
 
-      - name: Run tests with coverage
+      - name: Typecheck memory
+        run: pnpm --filter zouroboros-memory typecheck
+
+      - name: Typecheck swarm
+        run: pnpm --filter zouroboros-swarm typecheck
+
+      - name: Typecheck selfheal
+        run: pnpm --filter zouroboros-selfheal typecheck
+
+      # ── Tests ────────────────────────────────────────────────────────────────
+
+      - name: Test core (with coverage)
         run: pnpm --filter zouroboros-core test:coverage
 
-      - name: Upload coverage artifact
+      - name: Test memory
+        run: pnpm --filter zouroboros-memory test
+
+      - name: Test swarm
+        run: pnpm --filter zouroboros-swarm test
+
+      - name: Test selfheal
+        run: pnpm --filter zouroboros-selfheal test
+
+      # ── Artifacts ────────────────────────────────────────────────────────────
+
+      - name: Upload core coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-core
           path: packages/core/coverage/
           retention-days: 7
