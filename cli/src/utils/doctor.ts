@@ -51,11 +51,17 @@ export async function runDoctor(options: { fix?: boolean } = {}): Promise<boolea
 
   // Check 2: Memory database
   const memoryDb = DEFAULT_MEMORY_DB_PATH;
+  let factCount = 0;
+  let embeddingCount = 0;
   if (existsSync(memoryDb)) {
     try {
       const result = execSync(`sqlite3 "${memoryDb}" "SELECT COUNT(*) FROM facts;"`, { encoding: 'utf-8' });
-      const count = parseInt(result.trim());
-      checks.push({ name: 'Memory Database', status: 'ok', message: `${count} facts stored` });
+      factCount = parseInt(result.trim());
+      try {
+        const embResult = execSync(`sqlite3 "${memoryDb}" "SELECT COUNT(*) FROM fact_embeddings;"`, { encoding: 'utf-8' });
+        embeddingCount = parseInt(embResult.trim());
+      } catch {}
+      checks.push({ name: 'Memory Database', status: 'ok', message: `${factCount} facts, ${embeddingCount} embeddings` });
     } catch {
       checks.push({ name: 'Memory Database', status: 'warning', message: 'Exists but schema may need migration' });
     }
@@ -285,6 +291,44 @@ CREATE INDEX IF NOT EXISTS idx_open_loops_entity ON open_loops(entity, status);
         name: 'Scheduled Agents',
         status: 'warning',
         message: 'agents/manifest.json not found'
+      });
+    }
+  }
+
+  // Check 7: Vector DB migration readiness (MEM-201)
+  if (factCount > 0) {
+    const EARLY_WARNING = 2500;
+    const RECOMMEND_THRESHOLD = 5000;
+    const URGENT_THRESHOLD = 10000;
+    let dbSizeKb = 0;
+    try {
+      const sizeResult = execSync(`stat -c%s "${memoryDb}" 2>/dev/null || stat -f%z "${memoryDb}"`, { encoding: 'utf-8' });
+      dbSizeKb = Math.round(parseInt(sizeResult.trim()) / 1024);
+    } catch {}
+
+    if (factCount >= URGENT_THRESHOLD) {
+      checks.push({
+        name: 'Vector Scale',
+        status: 'error',
+        message: `${factCount} facts (${dbSizeKb}KB) — brute-force scan degraded. Migrate to sqlite-vec. See packages/memory/MIGRATION.md`,
+      });
+    } else if (factCount >= RECOMMEND_THRESHOLD) {
+      checks.push({
+        name: 'Vector Scale',
+        status: 'warning',
+        message: `${factCount} facts (${dbSizeKb}KB) — approaching scale limit. Plan sqlite-vec migration. See packages/memory/MIGRATION.md`,
+      });
+    } else if (factCount >= EARLY_WARNING) {
+      checks.push({
+        name: 'Vector Scale',
+        status: 'warning',
+        message: `${factCount} facts (${dbSizeKb}KB) — early warning. Monitor growth rate.`,
+      });
+    } else {
+      checks.push({
+        name: 'Vector Scale',
+        status: 'ok',
+        message: `${factCount} facts (${dbSizeKb}KB) — well within brute-force scan limits`,
       });
     }
   }
