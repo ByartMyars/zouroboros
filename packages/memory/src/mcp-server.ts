@@ -9,6 +9,8 @@
 
 import { initDatabase, closeDatabase, getDbStats } from './database.js';
 import { storeFact, searchFacts, searchFactsHybrid, getFact, deleteFact, cleanupExpiredFacts } from './facts.js';
+import { rerankResults } from './reranker.js';
+import { answerWithCoT } from './cot-answer.js';
 import { createEpisode, searchEpisodes, getEntityEpisodes, getEpisodeStats } from './episodes.js';
 import { getProfile, updateTraits, updatePreferences, recordInteraction, getProfileSummary, listProfiles } from './profiles.js';
 import { ensureProfileSchema } from './profiles.js';
@@ -75,7 +77,7 @@ const TOOLS: McpToolDefinition[] = [
         entity: { type: 'string', description: 'Filter by entity' },
         category: { type: 'string', description: 'Filter by category' },
         limit: { type: 'number', description: 'Max results (default 10)' },
-        mode: { type: 'string', enum: ['keyword', 'hybrid'], description: 'Search mode (default keyword)' },
+        mode: { type: 'string', enum: ['keyword', 'hybrid', 'deep'], description: 'Search mode: keyword (exact), hybrid (RRF fusion), deep (hybrid + rerank + CoT answer)' },
       },
       required: ['query'],
     },
@@ -160,6 +162,19 @@ async function handleToolCall(
 
     case 'memory_search': {
       const mode = (args.mode as string) ?? 'keyword';
+      if (mode === 'deep') {
+        const deepConfig: typeof config = {
+          ...config,
+          reranker: { enabled: true, ...config.reranker },
+          cot: { enabled: true, ...config.cot },
+        };
+        const hybridResults = await searchFactsHybrid(args.query as string, deepConfig, {
+          limit: 10,
+          rerank: true,
+        });
+        const answer = await answerWithCoT(args.query as string, hybridResults, deepConfig);
+        return { results: hybridResults, answer };
+      }
       if (mode === 'hybrid') {
         return searchFactsHybrid(args.query as string, config, {
           limit: args.limit as number | undefined,

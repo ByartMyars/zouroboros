@@ -50,6 +50,17 @@ export interface MemoryConfig {
     medium: number;    // days
     short: number;     // days
   };
+  reranker?: {
+    enabled: boolean;
+    model?: string;        // default "gpt-4o-mini"
+    maxContextChunks?: number;  // default 6
+    contextCharLimit?: number;  // default 4000
+  };
+  cot?: {
+    enabled: boolean;
+    model?: string;        // default "gpt-4o-mini"
+    multiHopFallback?: boolean; // default true
+  };
 }
 
 export interface SwarmConfig {
@@ -157,6 +168,18 @@ export interface MemorySearchResult {
   entry: MemoryEntry;
   score: number;
   matchType: 'exact' | 'semantic' | 'graph' | 'hybrid';
+}
+
+export interface CotAnswerResult {
+  answer: string;
+  reasoning: string;
+  usedMultiHop: boolean;
+  hops: number;
+}
+
+export interface DeepSearchResult {
+  results: MemorySearchResult[];
+  answer?: CotAnswerResult;
 }
 
 export interface GraphNode {
