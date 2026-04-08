@@ -4,7 +4,8 @@
 
 <p align="center">
   <a href="https://github.com/marlandoj/zouroboros/actions/workflows/ci.yml"><img src="https://github.com/marlandoj/zouroboros/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/marlandoj/zouroboros/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-blue.svg" alt="Release v1.0.0" /></a>
+  <a href="https://github.com/marlandoj/zouroboros/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue.svg" alt="Release v1.1.0" /></a>
+  <a href="https://www.npmjs.com/search?q=zouroboros"><img src="https://img.shields.io/npm/v/zouroboros-core.svg?label=npm&color=cb3837" alt="npm" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://zo.computer"><img src="https://img.shields.io/badge/Zo%20Computer-native-green.svg" alt="Zo Computer" /></a>
 </p>
@@ -25,13 +26,51 @@ Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-inst
 
 ## Quick Start
 
-### One-Line Install
+### Install from npm
+
+Pick the packages you need — no need to clone the whole repo:
+
+```bash
+# Core types and utilities
+npm install zouroboros-core
+
+# Memory system (SQLite + vector embeddings)
+npm install zouroboros-memory
+
+# Multi-agent swarm orchestration
+npm install zouroboros-swarm
+
+# Spec-first workflow tools
+npm install zouroboros-workflow
+
+# Self-healing pipeline
+npm install zouroboros-selfheal
+
+# Persona framework
+npm install zouroboros-personas
+
+# RAG expansion
+npm install zouroboros-rag
+
+# CLI (global install)
+npm install -g zouroboros-cli
+```
+
+Or install everything:
+
+```bash
+npm install zouroboros-core zouroboros-memory zouroboros-swarm zouroboros-workflow zouroboros-selfheal zouroboros-personas zouroboros-rag
+```
+
+### From Source
+
+#### One-Line Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marlandoj/zouroboros/main/scripts/install.sh | bash
 ```
 
-### Manual Install
+#### Manual Install
 
 ```bash
 git clone https://github.com/marlandoj/zouroboros.git
@@ -42,7 +81,7 @@ zouroboros init
 zouroboros doctor
 ```
 
-### Skill Install (recommended for distributing to other Zo Computers)
+#### Skill Install (recommended for distributing to other Zo Computers)
 
 After installing the monorepo, export all 9 sub-skills as standalone Bun scripts — no build step needed on the target machine:
 
@@ -157,17 +196,17 @@ const results = await orchestrator.run({
 
 ## Packages
 
-| Package | Description | CLI Command |
-|---------|-------------|-------------|
-| `zouroboros-core` | Types, config, utilities | - |
-| `zouroboros-memory` | Hybrid SQLite + vector memory | `zouroboros-memory` |
-| `zouroboros-workflow` | Interview, eval, unstuck, autoloop | `zouroboros-*` |
-| `zouroboros-personas` | Persona creation framework | `zouroboros-personas` |
-| `zouroboros-persona-creator` | 8-phase persona creation toolkit with templates & examples | `zouroboros persona create` |
-| `zouroboros-swarm` | v5 orchestration: 6-signal routing, DAG execution, circuit breakers, tier-resolve, MCP | `zouroboros-swarm` |
-| `zouroboros-selfheal` | Introspection & evolution | `zouroboros-introspect` |
-| `zouroboros-cli` | Unified CLI | `zouroboros` |
-| `zouroboros-tui` | Dashboard (see [zo.space/zouroboros](https://marlandoj.zo.space/zouroboros)) | `zouroboros tui` |
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`zouroboros-core`](https://www.npmjs.com/package/zouroboros-core) | ![npm](https://img.shields.io/npm/v/zouroboros-core.svg) | Types, config, utilities |
+| [`zouroboros-memory`](https://www.npmjs.com/package/zouroboros-memory) | ![npm](https://img.shields.io/npm/v/zouroboros-memory.svg) | Hybrid SQLite + vector memory |
+| [`zouroboros-swarm`](https://www.npmjs.com/package/zouroboros-swarm) | ![npm](https://img.shields.io/npm/v/zouroboros-swarm.svg) | v5 orchestration: DAG execution, circuit breakers, tier-resolve |
+| [`zouroboros-workflow`](https://www.npmjs.com/package/zouroboros-workflow) | ![npm](https://img.shields.io/npm/v/zouroboros-workflow.svg) | Interview, eval, unstuck, autoloop |
+| [`zouroboros-selfheal`](https://www.npmjs.com/package/zouroboros-selfheal) | ![npm](https://img.shields.io/npm/v/zouroboros-selfheal.svg) | Introspection & evolution |
+| [`zouroboros-personas`](https://www.npmjs.com/package/zouroboros-personas) | ![npm](https://img.shields.io/npm/v/zouroboros-personas.svg) | Persona creation framework |
+| [`zouroboros-rag`](https://www.npmjs.com/package/zouroboros-rag) | ![npm](https://img.shields.io/npm/v/zouroboros-rag.svg) | RAG expansion toolkit |
+| [`zouroboros-cli`](https://www.npmjs.com/package/zouroboros-cli) | ![npm](https://img.shields.io/npm/v/zouroboros-cli.svg) | Unified CLI |
+| [`zouroboros-tui`](https://www.npmjs.com/package/zouroboros-tui) | ![npm](https://img.shields.io/npm/v/zouroboros-tui.svg) | Terminal dashboard |
 
 ## Architecture
 

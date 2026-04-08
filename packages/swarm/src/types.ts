@@ -108,6 +108,7 @@ export interface SwarmConfig {
   routingStrategy: RoutingStrategy;
   useSixSignalRouting: boolean;
   stagnationEnabled: boolean;
+  dbPath?: string;
   hierarchicalDelegation?: HierarchicalDelegationConfig;
   ragEnrichment?: RAGEnrichmentConfig;
   loopGuard?: Partial<LoopGuardConfig>;

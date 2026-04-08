@@ -53,8 +53,8 @@ export class SwarmOrchestrator {
     this.transports = new Map();
     this.capabilities = [];
     this.registryEntries = [];
-    this.budgetGovernor = new BudgetGovernor();
-    this.roleRegistry = new RoleRegistry();
+    this.budgetGovernor = new BudgetGovernor(this.config.dbPath);
+    this.roleRegistry = new RoleRegistry(this.config.dbPath);
 
     this.initializeTransports();
 

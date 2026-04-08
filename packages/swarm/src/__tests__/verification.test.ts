@@ -2,7 +2,9 @@
  * Tests for the verification module: capabilities manifest, wiring verifier, gap audit.
  */
 
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { existsSync, unlinkSync } from 'fs';
+import { closeDb } from '../db/schema.js';
 import {
   CAPABILITY_MANIFEST,
   getCapability,
@@ -200,10 +202,18 @@ describe('Gap Audit', () => {
 // ============================================================================
 
 describe('Preflight Data Checks', () => {
+  const TEST_DB = '/tmp/swarm-test-preflight.db';
+
+  afterEach(() => {
+    closeDb();
+    for (const f of [TEST_DB, `${TEST_DB}-shm`, `${TEST_DB}-wal`]) {
+      if (existsSync(f)) unlinkSync(f);
+    }
+  });
+
   test('SwarmOrchestrator exposes preflightDataChecks', async () => {
-    // Dynamic import to avoid registry loading issues in test env
     const { SwarmOrchestrator } = await import('../orchestrator.js');
-    const orch = new SwarmOrchestrator();
+    const orch = new SwarmOrchestrator({ dbPath: TEST_DB });
     const checks = orch.preflightDataChecks();
     expect(checks).toBeDefined();
     expect(Array.isArray(checks.warnings)).toBe(true);
@@ -211,12 +221,9 @@ describe('Preflight Data Checks', () => {
   });
 
   test('preflight detects zero transports as error', async () => {
-    // Create orchestrator with no registry (will have 0 transports if registry missing)
-    // This is hard to test in isolation — just verify the method exists and returns correct shape
     const { SwarmOrchestrator } = await import('../orchestrator.js');
-    const orch = new SwarmOrchestrator();
+    const orch = new SwarmOrchestrator({ dbPath: TEST_DB });
     const checks = orch.preflightDataChecks();
-    // If we're in the test env, transports may or may not load
     expect(typeof checks.errors.length).toBe('number');
     expect(typeof checks.warnings.length).toBe('number');
   });

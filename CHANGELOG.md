@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.1.0] — 2026-04-08
+
+> Second release: CortexDB memory migration, Swarm Phase 2 wiring,
+> model migration to gpt-4o-mini, npm publish pipeline, and CI hardening.
+
+### Features
+- **swarm**: Phase 2 wiring — RAG enrichment, hierarchical delegation, 57 RoleRegistry roles, unified routing, automated verification & gap audit (`4400f38`)
+- **swarm**: ECC-007 multi-harness — wire transport field, fix setsid, add executor capabilities (`4f4c3c3`)
+- **memory**: MEM-203 model migration to gpt-4o-mini + retrieval quality improvements (`9f17cd7`)
+- **memory**: MEM-201 vector scale monitoring + CortexDB migration guide (`9d5f16f`)
+- **publish**: add npm publish workflow with provenance signing, harden all package.json files (`ab5cfdf`)
+
+### Bug Fixes
+- **swarm**: CI test DB path for verification tests (`0c95f87`)
+- **swarm**: skip binary-dependent health checks in CI (`1b916fe`)
+- **rag**: fix test script failing on zero test files
+
+### CI/CD
+- Expand CI to cover all packages + add README badge (`02f7190`)
+
+---
+
 ## [v1.0.0] — 2026-04-07
 
 > First unified monorepo release. All packages consolidated from individual repos.
