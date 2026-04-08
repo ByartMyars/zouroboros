@@ -52,6 +52,7 @@ export interface Task {
   priority: PriorityQueue;
   executor?: string;
   agencyPersona?: string;
+  role?: string;
   dependsOn?: string[];
   memoryStrategy?: 'hierarchical' | 'sliding' | 'none';
   timeoutSeconds?: number;
@@ -59,6 +60,7 @@ export interface Task {
   model?: string;
   delegation?: TaskDelegationConfig;
   outputToMemory?: boolean;
+  ragContext?: string;
   memoryMetadata?: {
     category?: string;
     priority?: PriorityQueue;
@@ -90,6 +92,12 @@ export interface LoopGuardConfig {
   openCircuitOnLoop: boolean;
 }
 
+export interface RAGEnrichmentConfig {
+  enabled: boolean;
+  topK?: number;
+  minScore?: number;
+}
+
 export interface SwarmConfig {
   localConcurrency: number;
   timeoutSeconds: number;
@@ -101,6 +109,7 @@ export interface SwarmConfig {
   useSixSignalRouting: boolean;
   stagnationEnabled: boolean;
   hierarchicalDelegation?: HierarchicalDelegationConfig;
+  ragEnrichment?: RAGEnrichmentConfig;
   loopGuard?: Partial<LoopGuardConfig>;
 }
 
@@ -166,8 +175,20 @@ export interface RouteDecision {
     history: number;
     procedure?: number;
     temporal?: number;
+    budget?: number;
+    role?: number;
   };
   method: 'composite' | 'fallback';
+}
+
+export interface BudgetSnapshot {
+  totalSpentUSD: number;
+  totalBudgetUSD: number;
+  perExecutor: Record<string, number>;
+}
+
+export interface HealthSnapshot {
+  [executorId: string]: { state: 'CLOSED' | 'OPEN' | 'HALF_OPEN'; failures: number };
 }
 
 export interface ErrorClassification {

@@ -160,6 +160,145 @@ Current behavior: When a root task fails, all dependent tasks are marked failed 
 
 ---
 
+### P1-High: Wire RAG Enrichment into New Package
+**Status**: Gap — Built in v5 standalone, NOT ported to packages/swarm
+**Effort**: Small-Medium (3-5 days)
+**Impact**: High — Tasks get grounded context from memory/RAG before execution
+
+**Description**:
+The v5 standalone orchestrator (`orchestrate-v5.ts`) has working RAG enrichment that calls `shouldEnrichWithRAG()` and `enrichTaskWithRAG()` during prompt building. This injects relevant memory context (top-K matches) into task prompts before execution. The new `packages/swarm` orchestrator has NO equivalent — tasks run without any memory grounding.
+
+**What exists in v5** (lines 2233-2241):
+- `shouldEnrichWithRAG(basePrompt)` gate
+- `enrichTaskWithRAG(basePrompt, { topK: 3 })` → returns `{ context, latencyMs, patterns }`
+- Context injected into final prompt before executor dispatch
+- Latency + pattern count logged as metrics
+
+**What needs to happen**:
+1. Port `rag-enrichment.ts` from `scripts/` into `packages/swarm/src/rag/`
+2. Add RAG enrichment hook in `DAGExecutor` or `SwarmOrchestrator.run()` pre-flight
+3. Make it opt-in via `SwarmConfig.enableRAG` (default true)
+4. Wire metric logging for enrichment latency
+
+**Acceptance Criteria**:
+- [ ] RAG enrichment runs before task dispatch (when enabled)
+- [ ] Tasks receive grounded context from memory system
+- [ ] Enrichment latency logged per task
+- [ ] Graceful fallback when RAG/memory unavailable
+- [ ] SWARM-bench tasks still pass with enrichment enabled
+
+**Dependencies**: zo-memory-system
+**Rationale**: Without RAG enrichment, the new orchestrator is blind to project context. This was a key differentiator of v5.
+
+---
+
+### P1-High: Wire Hierarchical Delegation into New Package
+**Status**: Gap — Built in v5 standalone, NOT ported to packages/swarm
+**Effort**: Medium (1-2 weeks)
+**Impact**: High — Enables parent-child task decomposition
+
+**Description**:
+The v5 standalone orchestrator has hierarchical delegation (`evaluateDelegation`, `hasDisjointWriteScopes`, `renderHierarchicalPolicyBlock`, `stripDelegationReport`) that enables tasks to spawn subtasks with write-scope isolation. The new `packages/swarm` orchestrator has NO equivalent.
+
+**What exists in v5**:
+- `TaskDelegationConfig`: mode, maxChildren, writeScopes per task
+- Preflight validation: `hasDisjointWriteScopes()` + dep-graph conflict detection
+- Prompt building: `renderHierarchicalPolicyBlock()` adds delegation constraints
+- Result capture: `stripDelegationReport()` extracts child records from output
+- Episode creation: parent-child relationships captured in memory episodes
+
+**What needs to happen**:
+1. Port `src/hierarchical.ts` into `packages/swarm/src/hierarchical/`
+2. Add delegation config to `Task` type
+3. Wire preflight validation into `SwarmOrchestrator` constructor or `run()`
+4. Wire prompt policy block into transport layer (pre-dispatch)
+5. Wire result stripping into post-execution processing
+6. Add episode capture for parent-child relationships
+
+**Acceptance Criteria**:
+- [ ] Tasks can specify delegation config (mode, maxChildren, writeScopes)
+- [ ] Preflight rejects overlapping write scopes across parallel tasks
+- [ ] Delegation policy block injected into executor prompts
+- [ ] Child task records captured and logged to memory
+- [ ] Can be disabled via `SwarmConfig.enableDelegation` (default false)
+
+**Dependencies**: DAGExecutor (already in package)
+**Rationale**: Without delegation, complex tasks can't decompose into subtasks. This limits the orchestrator to flat task lists.
+
+---
+
+### P1-High: Seed RoleRegistry with Agency Personas
+**Status**: Gap — RoleRegistry exists but is empty
+**Effort**: Small (1-2 days)
+**Impact**: Medium — Enables role-based routing from 45 agency personas
+
+**Description**:
+The `RoleRegistry` is SQLite-backed with full CRUD, but contains zero entries. The workspace has 45 agency personas in `agency-agents-personas.json` (9 domains: design, engineering, marketing, product, project-management, spatial-computing, specialized, support, testing) plus 97 IDENTITY files. None are ingested.
+
+**What needs to happen**:
+1. Write a seed script that reads `agency-agents-personas.json`
+2. Map each persona to an executor + default model based on domain
+3. Populate RoleRegistry via `registry.create()` calls
+4. Add a CLI command: `zouroboros-swarm roles seed`
+5. Add a CLI command: `zouroboros-swarm roles list`
+
+**Acceptance Criteria**:
+- [ ] All 45 agency personas seeded into RoleRegistry
+- [ ] Each maps to an appropriate executor (claude-code, gemini, codex, hermes)
+- [ ] `zouroboros-swarm roles list` shows all entries
+- [ ] Tasks with `role: "backend-architect"` route correctly
+
+**Dependencies**: RoleRegistry (already built)
+**Rationale**: The RoleRegistry was built but never populated. Without seed data, role-based routing is dead code.
+
+---
+
+### P2-Medium: Unify selectExecutor with RoutingEngine 6-Signal Scoring
+**Status**: Gap — Two routing systems, neither complete
+**Effort**: Small (2-3 days)
+**Impact**: Medium — Better routing decisions
+
+**Description**:
+Currently `selectExecutor()` uses a priority-chain fallthrough (explicit → role → budget → tag heuristic) that short-circuits before the `RoutingEngine`'s 6-signal composite scoring can run. The v5 standalone blended ALL signals into a weighted score for every decision. The new system should do the same.
+
+**What needs to happen**:
+1. Replace tag-heuristic fallback in `selectExecutor()` with a call to `RoutingEngine.route()`
+2. Feed budget and role signals into the RoutingEngine as additional signals (not short-circuits)
+3. Ensure 6-signal weights (capability, health, complexityFit, history, procedure, temporal) all contribute
+
+**Acceptance Criteria**:
+- [ ] All 6 signals contribute to every routing decision
+- [ ] Budget pressure reduces score for expensive executors (not hard-override)
+- [ ] Role affinity boosts score for matching executor (not hard-override)
+- [ ] Explicit executorId still takes priority (backward compat)
+
+**Dependencies**: RoutingEngine, selectExecutor (both built)
+**Rationale**: Two half-complete routers are worse than one complete one. The v5 composite was better because it blended signals.
+
+---
+
+### P1-High: Automated Verification & Gap Audit
+**Status**: ✅ COMPLETE (2026-04-08)
+**Effort**: Small (1 day)
+**Impact**: High — Replaces manual gap audit with mechanical, CI-runnable checks
+
+**Description**:
+Transforms the three manual gap audit questions (reachability, data prerequisites, cross-boundary state) into automated tooling. Also adds a capability manifest and import graph verifier.
+
+**Deliverables**:
+- [x] `src/verification/capabilities.ts` — Declarative capability manifest (12 capabilities, 16 wiring edges)
+- [x] `src/verification/verify-wiring.ts` — Import graph + reachability checker (export verification, import verification, call site verification, entry-point reachability, orphan detection)
+- [x] `src/verification/gap-audit.ts` — Automated 3-question audit (reachability via verify-wiring, data prerequisites via SQLite/registry checks, cross-boundary via file sentinel + env var checks)
+- [x] Preflight data checks in `orchestrator.ts` run() — blocks execution if zero transports or all circuit breakers OPEN
+- [x] CLI commands: `zouroboros-swarm verify` and `zouroboros-swarm gap-audit` with `--strict` and `--json` flags
+- [x] 21 tests (all pass), zero TypeScript errors, 223 total suite tests pass
+- [x] HeartbeatScheduler export added to index.ts (was orphaned, caught by verifier)
+- [x] Export pattern fix: `export async function` now correctly detected
+
+**Why this matters**: The gap audit loop caught 3 real "built but not wired" failures in prior sessions (JHF remediation, PKA briefing, RoleRegistry). This automates what was previously a manual 3-question process.
+
+---
+
 ## Icebox (P3-Low)
 
 ### P3-Low: Heartbeat Token Limit for Bridge Executors
@@ -271,6 +410,8 @@ Web dashboard showing active swarm runs, task progress, circuit breaker states, 
 | 2026-03-27 | Prioritize SWARM-bench over heartbeats | No runaway token incidents; cascade failures are bigger problem |
 | 2026-03-27 | Defer AgentKV/CortexDB to Phase 3 | Need benchmarks (SWARM-bench) to measure improvement |
 | 2026-03-27 | Start Agentic RAG with MCP client only | Lower risk; validate value before committing to local deployment |
+| 2026-04-07 | Add P1 items for RAG enrichment, hierarchical delegation, role seeding, router unification | v5→package migration left 4 capabilities as dead code; surfaced during swarm-bench update review |
+| 2026-04-08 | Implement automated verification + gap audit | Manual gap audit caught 3 real bugs in prior sessions; now runs as `zouroboros-swarm verify` and `zouroboros-swarm gap-audit` in CI |
 
 ---
 
@@ -283,4 +424,4 @@ Web dashboard showing active swarm runs, task progress, circuit breaker states, 
 
 ---
 
-*Last updated: 2026-03-27*
+*Last updated: 2026-04-07*

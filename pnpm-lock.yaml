@@ -133,6 +133,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: 0.18.0
         version: 0.18.0(zod@3.25.76)
+      hono:
+        specifier: ^4.12.12
+        version: 4.12.12
       zouroboros-core:
         specifier: workspace:*
         version: link:../core
@@ -779,6 +782,11 @@ packages:
 
   /here@0.0.2:
     resolution: {integrity: sha512-U7VYImCTcPoY27TSmzoiFsmWLEqQFaYNdpsPb9K0dXJhE6kufUqycaz51oR09CW85dDU9iWyy7At8M+p7hb3NQ==}
+    dev: false
+
+  /hono@4.12.12:
+    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
+    engines: {node: '>=16.9.0'}
     dev: false
 
   /human-id@4.1.3:

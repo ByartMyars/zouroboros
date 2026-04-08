@@ -18,6 +18,7 @@ export type {
   DAGMode,
   ErrorCategory,
   CircuitBreakerState,
+  RAGEnrichmentConfig,
 } from './types.js';
 
 // Circuit breaker
@@ -79,6 +80,31 @@ export {
   type InjectionTier,
 } from './tokens/optimizer.js';
 
+// RAG enrichment
+export { shouldEnrichWithRAG, enrichTaskWithRAG, prefetchRAGForTasks, type RAGEnrichmentOptions } from './rag/index.js';
+
+// Hierarchical delegation
+export {
+  evaluateDelegation,
+  renderHierarchicalPolicyBlock,
+  stripDelegationReport,
+  getDelegationProfile,
+  taskNeedsWriteScopes,
+  hasDisjointWriteScopes,
+  type HierarchicalDelegationDecision,
+  type HierarchicalDelegationProfile,
+} from './hierarchical.js';
+
+// Role registry + persona seeder
+export { RoleRegistry, type Role, type RoleResolution } from './roles/registry.js';
+export { seedPersonasToRegistry, type PersonaEntry, type PersonaSeedOptions } from './roles/persona-seeder.js';
+
+// Budget governor
+export { BudgetGovernor, type BudgetConfig } from './budget/governor.js';
+
+// Executor selector
+export { selectExecutor, inferComplexity, type ExecutorSelection, type BudgetSnapshot, type HealthSnapshot } from './selector/executor-selector.js';
+
 // Main orchestrator
 export { SwarmOrchestrator } from './orchestrator.js';
 
@@ -97,3 +123,29 @@ export type {
 
 // ACP transport
 export { ACPTransport, type ACPTransportConfig } from './transport/acp-transport.js';
+
+// Heartbeat
+export { HeartbeatScheduler } from './heartbeat/scheduler.js';
+
+// Verification & gap audit
+export {
+  CAPABILITY_MANIFEST,
+  getCapability,
+  getCapabilityIds,
+  verifyWiring,
+  printWiringReport,
+  runGapAudit,
+  printGapAuditReport,
+} from './verification/index.js';
+export type {
+  Capability,
+  CapabilityEdge,
+  DataPrerequisite,
+  CrossBoundaryCheck,
+  WiringIssue,
+  WiringReport,
+  Gap,
+  GapAuditReport,
+  GapSeverity,
+  GapCategory,
+} from './verification/index.js';
