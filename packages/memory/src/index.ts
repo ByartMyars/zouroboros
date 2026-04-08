@@ -202,6 +202,16 @@ export {
 // Note: import-pipeline.ts is a standalone CLI tool, not re-exported as library API.
 // Run directly: bun packages/memory/src/import-pipeline.ts --source <type> --path <path>
 
+// v5 Enhancement — LLM Reranker (MEM-301)
+export { rerankResults } from './reranker.js';
+
+// v5 Enhancement — Chain-of-Thought Answer (MEM-302)
+export { answerWithCoT } from './cot-answer.js';
+
+// v5 Enhancement — LLM Client (internal, exported for testing)
+export { llmCall } from './llm.js';
+export type { LlmCallOptions, LlmCallResult } from './llm.js';
+
 // Re-export types
 export type {
   MemoryEntry,
@@ -209,6 +219,8 @@ export type {
   EpisodicMemory,
   TemporalQuery,
   CognitiveProfile,
+  CotAnswerResult,
+  DeepSearchResult,
   GraphNode,
   GraphEdge,
 } from 'zouroboros-core';

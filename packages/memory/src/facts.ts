@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { getDatabase } from './database.js';
 import { generateEmbedding, serializeEmbedding, deserializeEmbedding, generateHyDEExpansion, blendEmbeddings } from './embeddings.js';
 import { invalidateGraphCache } from './graph.js';
+import { rerankResults } from './reranker.js';
 import type { MemoryConfig, MemoryEntry, MemorySearchResult, DecayClass } from 'zouroboros-core';
 
 // Decay class TTLs in seconds
@@ -251,18 +252,23 @@ export async function searchFactsHybrid(
   options: {
     limit?: number;
     vectorWeight?: number;
+    rerank?: boolean;
   } = {}
 ): Promise<MemorySearchResult[]> {
   const { limit = 10, vectorWeight = 0.7 } = options;
+  const shouldRerank = options.rerank ?? config.reranker?.enabled ?? false;
+
+  // When reranking, fetch more candidates for the reranker to choose from
+  const fetchLimit = shouldRerank ? Math.max(limit * 2, 20) : limit;
 
   // Get exact matches
-  const exactMatches = searchFacts(query, { limit: limit * 2 });
-  
+  const exactMatches = searchFacts(query, { limit: fetchLimit * 2 });
+
   // Get vector matches
   let vectorMatches: MemorySearchResult[] = [];
   if (config.vectorEnabled) {
     try {
-      vectorMatches = await searchFactsVector(query, config, { limit: limit * 2 });
+      vectorMatches = await searchFactsVector(query, config, { limit: fetchLimit * 2 });
     } catch (error) {
       console.warn('Vector search failed:', error);
     }
@@ -284,7 +290,7 @@ export async function searchFactsHybrid(
     const id = result.entry.id;
     const rrfScore = 1 / (k + rank + 1);
     const existing = scores.get(id);
-    
+
     if (existing) {
       existing.score += rrfScore * vectorWeight;
     } else {
@@ -293,14 +299,23 @@ export async function searchFactsHybrid(
   });
 
   // Sort by combined score
-  return Array.from(scores.values())
+  let fused: MemorySearchResult[] = Array.from(scores.values())
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
+    .slice(0, fetchLimit)
     .map(r => ({
       entry: r.entry,
       score: r.score,
-      matchType: 'hybrid',
+      matchType: 'hybrid' as const,
     }));
+
+  // LLM reranking pass
+  if (shouldRerank && fused.length > 0) {
+    fused = await rerankResults(query, fused, config, limit);
+  } else {
+    fused = fused.slice(0, limit);
+  }
+
+  return fused;
 }
 
 /**
