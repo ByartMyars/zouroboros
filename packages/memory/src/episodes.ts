@@ -64,12 +64,15 @@ export function createEpisode(input: CreateEpisodeInput): EpisodicMemory {
  */
 export function searchEpisodes(query: TemporalQuery): EpisodicMemory[] {
   const db = getDatabase();
+  const nowSec = Math.floor(Date.now() / 1000);
 
   let sql = `
     SELECT e.id, e.summary, e.outcome, e.happened_at as happenedAt,
            e.duration_ms as durationMs, e.procedure_id as procedureId,
-           e.metadata, e.created_at as createdAt
+           e.metadata, e.created_at as createdAt,
+           p.name as procedureName, p.version as procedureVersion
     FROM episodes e
+    LEFT JOIN procedures p ON e.procedure_id = p.id
     WHERE 1=1
   `;
   const params: (string | number)[] = [];
@@ -105,6 +108,8 @@ export function searchEpisodes(query: TemporalQuery): EpisodicMemory[] {
     procedureId: string | null;
     metadata: string | null;
     createdAt: number;
+    procedureName: string | null;
+    procedureVersion: number | null;
   }>;
 
   // Get entities for each episode
@@ -112,6 +117,8 @@ export function searchEpisodes(query: TemporalQuery): EpisodicMemory[] {
     const entityRows = db.query(
       'SELECT entity FROM episode_entities WHERE episode_id = ?'
     ).all(row.id) as { entity: string }[];
+
+    const daysAgo = Math.round((nowSec - row.happenedAt) / 86400);
 
     return {
       id: row.id,
@@ -122,7 +129,11 @@ export function searchEpisodes(query: TemporalQuery): EpisodicMemory[] {
       tags: [],
       createdAt: new Date(row.createdAt * 1000).toISOString(),
       tokenCount: row.durationMs || undefined,
-    };
+      // Gap 6: procedure linkage
+      ...(row.procedureName && { procedureName: row.procedureName, procedureVersion: row.procedureVersion }),
+      // Gap 7: temporal enrichment
+      daysAgo,
+    } as EpisodicMemory;
   });
 }
 
@@ -136,12 +147,16 @@ export function getEntityEpisodes(
   const db = getDatabase();
   const { limit = 10, outcome } = options;
 
+  const nowSec = Math.floor(Date.now() / 1000);
+
   let sql = `
     SELECT e.id, e.summary, e.outcome, e.happened_at as happenedAt,
            e.duration_ms as durationMs, e.procedure_id as procedureId,
-           e.metadata, e.created_at as createdAt
+           e.metadata, e.created_at as createdAt,
+           p.name as procedureName, p.version as procedureVersion
     FROM episodes e
     JOIN episode_entities ee ON e.id = ee.episode_id
+    LEFT JOIN procedures p ON e.procedure_id = p.id
     WHERE ee.entity = ?
   `;
   const params: (string | number)[] = [entity];
@@ -163,18 +178,25 @@ export function getEntityEpisodes(
     procedureId: string | null;
     metadata: string | null;
     createdAt: number;
+    procedureName: string | null;
+    procedureVersion: number | null;
   }>;
 
-  return rows.map(row => ({
-    id: row.id,
-    conversationId: row.id,
-    summary: row.summary,
-    outcome: row.outcome,
-    entities: [entity],
-    tags: [],
-    createdAt: new Date(row.createdAt * 1000).toISOString(),
-    tokenCount: row.durationMs || undefined,
-  }));
+  return rows.map(row => {
+    const daysAgo = Math.round((nowSec - row.happenedAt) / 86400);
+    return {
+      id: row.id,
+      conversationId: row.id,
+      summary: row.summary,
+      outcome: row.outcome,
+      entities: [entity],
+      tags: [],
+      createdAt: new Date(row.createdAt * 1000).toISOString(),
+      tokenCount: row.durationMs || undefined,
+      ...(row.procedureName && { procedureName: row.procedureName, procedureVersion: row.procedureVersion }),
+      daysAgo,
+    } as EpisodicMemory;
+  });
 }
 
 /**
