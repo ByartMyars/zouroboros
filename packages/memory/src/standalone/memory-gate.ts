@@ -16,7 +16,7 @@
 
 import { detectContinuation } from "./continuation";
 import { extractWikilinks } from "./wikilink-utils";
-import { getPersonaDomain } from "./domain-map.ts";
+import { getPersonaDomain, getPersonaDomains } from "./domain-map.ts";
 import { generateBriefing } from "./session-briefing.ts";
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -178,20 +178,26 @@ export async function injectSessionBriefing(personaSlug: string): Promise<string
   // Hermes is excluded at the rule level (omits --persona flag).
 
   try {
-    const domain = getPersonaDomain(personaSlug);
-    const effectiveDomain = domain === "shared" || domain === "personal" ? undefined : domain;
+    // Multi-domain personas (e.g., alaric) pass no domain — generateBriefing
+    // detects the multi-domain config and aggregates across all domains.
+    const multiDomains = getPersonaDomains(personaSlug);
+    let effectiveDomain: string | undefined;
+    if (!multiDomains) {
+      const domain = getPersonaDomain(personaSlug);
+      effectiveDomain = domain === "shared" || domain === "personal" ? undefined : domain;
+    }
+
     const result = await generateBriefing(personaSlug, effectiveDomain);
 
     if (!result.briefing || result.briefing.startsWith("No recent activity")) {
       return null;
     }
 
-    // Set the flag so shouldInjectMemory() skips Tier 3 on the first message
     markBriefingInjected();
 
-    // Format for injection into conversation context
+    const domainLabel = result.domain || effectiveDomain;
     const parts: string[] = [
-      `[Session Briefing — ${personaSlug}${effectiveDomain ? ` (${effectiveDomain})` : ""} — ${result.latency_ms}ms]`,
+      `[Session Briefing — ${personaSlug}${domainLabel ? ` (${domainLabel})` : ""} — ${result.latency_ms}ms]`,
       result.briefing,
     ];
     if (result.active_items.length > 0) {

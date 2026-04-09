@@ -134,10 +134,25 @@ export const PERSONA_DOMAIN_MAP: Record<string, Domain> = {
 };
 
 /**
+ * Multi-domain personas — these pull briefings from ALL listed domains
+ * instead of a single domain. Used by session-briefing.ts for aggregated context.
+ */
+export const MULTI_DOMAIN_PERSONAS: Record<string, Domain[]> = {
+  "alaric": ["zouroboros", "jhf-trading", "ffb", "infrastructure", "personal"],
+};
+
+/**
  * Look up the domain for a persona slug. Returns "shared" if not mapped.
  */
 export function getPersonaDomain(personaSlug: string): Domain {
   return PERSONA_DOMAIN_MAP[personaSlug] || "shared";
+}
+
+/**
+ * Get all domains for a multi-domain persona. Returns null if single-domain.
+ */
+export function getPersonaDomains(personaSlug: string): Domain[] | null {
+  return MULTI_DOMAIN_PERSONAS[personaSlug] || null;
 }
 
 /**

@@ -16,7 +16,7 @@ import { Database } from "bun:sqlite";
 import { parseArgs } from "util";
 import { loadPersonaContext } from "./vault-persona-loader.ts";
 import { searchCrossPersona, getAccessiblePersonas } from "./cross-persona.ts";
-import { getPersonaDomain } from "./domain-map.ts";
+import { getPersonaDomain, getPersonaDomains } from "./domain-map.ts";
 
 const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -232,7 +232,63 @@ export async function generateBriefing(
 ): Promise<SessionBriefing> {
   const start = performance.now();
 
-  // Auto-resolve domain from persona slug if not provided
+  // Check if this is a multi-domain persona (e.g., alaric)
+  const multiDomains = !domain ? getPersonaDomains(persona) : null;
+
+  if (multiDomains && multiDomains.length > 1) {
+    // Multi-domain briefing: aggregate episodes from all domains, deduplicate
+    const allEpisodes: string[] = [];
+    const allVault: string[] = [];
+    const seenEpisodes = new Set<string>();
+
+    for (const d of multiDomains) {
+      const domainEps = getRecentEpisodes(d, 3);
+      for (const ep of domainEps) {
+        if (!seenEpisodes.has(ep)) {
+          seenEpisodes.add(ep);
+          allEpisodes.push(ep);
+        }
+      }
+      const domainVault = getVaultContext(persona, d);
+      for (const v of domainVault) {
+        if (!allVault.includes(v)) allVault.push(v);
+      }
+    }
+
+    const generalEps = getRecentEpisodes(undefined, 3);
+    for (const ep of generalEps) {
+      if (!seenEpisodes.has(ep)) {
+        seenEpisodes.add(ep);
+        allEpisodes.push(ep);
+      }
+    }
+
+    const openLoops = getOpenLoops(persona);
+    const inheritedFacts = getInheritedFacts(persona, undefined);
+
+    const episodes = allEpisodes.slice(0, 8);
+    const vaultContext = allVault.slice(0, 8);
+    const domainLabel = multiDomains.join("+");
+
+    const briefing = await synthesize(
+      persona, domainLabel, vaultContext, episodes, openLoops, inheritedFacts, maxTokens,
+    );
+
+    const latency_ms = Math.round(performance.now() - start);
+    return {
+      persona,
+      domain: domainLabel,
+      briefing,
+      active_items: openLoops,
+      recent_episodes: episodes,
+      inherited_facts: inheritedFacts,
+      vault_context: vaultContext,
+      generated_at: Math.floor(Date.now() / 1000),
+      latency_ms,
+    };
+  }
+
+  // Single-domain briefing (original path)
   if (!domain) {
     const resolved = getPersonaDomain(persona);
     if (resolved !== "shared" && resolved !== "personal") {
@@ -240,7 +296,6 @@ export async function generateBriefing(
     }
   }
 
-  // Run all data collection in parallel
   const [vaultContext, episodes, openLoops, inheritedFacts] = await Promise.all([
     Promise.resolve(getVaultContext(persona, domain)),
     Promise.resolve(getRecentEpisodes(domain)),
@@ -248,7 +303,6 @@ export async function generateBriefing(
     Promise.resolve(getInheritedFacts(persona, domain)),
   ]);
 
-  // Synthesize
   const briefing = await synthesize(
     persona, domain ?? null, vaultContext, episodes, openLoops, inheritedFacts, maxTokens,
   );
