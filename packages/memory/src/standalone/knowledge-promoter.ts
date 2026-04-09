@@ -17,9 +17,9 @@ import { listPools, getAccessiblePersonas } from "./cross-persona.ts";
 
 const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
 const LOG_PATH = "/dev/shm/knowledge-promoter.log";
-const CONFIDENCE_FLOOR = 0.9;
-const LOOKBACK_SECONDS = 24 * 60 * 60; // 24 hours
-const MAX_PROMOTIONS_PER_CYCLE = 20;
+const CONFIDENCE_FLOOR = 0.8;
+const LOOKBACK_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const MAX_PROMOTIONS_PER_CYCLE = 30;
 
 interface PromotionCandidate {
   fact_id: string;
@@ -96,22 +96,25 @@ function run(dryRun: boolean, verbose: boolean): PromotionResult {
       return result;
     }
 
-    // Find recent high-confidence facts from pool members
-    const placeholders = [...allPoolPersonas].map(() => "?").join(",");
+    // Find recent high-confidence facts from pool members OR "shared" facts.
+    // 99% of facts are tagged "shared" so we must include them for promotion
+    // to work across pools based on entity content.
+    const personaList = [...allPoolPersonas];
+    const placeholders = personaList.map(() => "?").join(",");
     const candidates = db.prepare(`
       SELECT id as fact_id, entity, key, value, persona, confidence, created_at
       FROM facts
-      WHERE persona IN (${placeholders})
+      WHERE (persona IN (${placeholders}) OR persona = 'shared')
         AND confidence >= ?
         AND created_at > ?
       ORDER BY confidence DESC, created_at DESC
       LIMIT ?
-    `).all(...allPoolPersonas, CONFIDENCE_FLOOR, cutoff, MAX_PROMOTIONS_PER_CYCLE * 2) as PromotionCandidate[];
+    `).all(...personaList, CONFIDENCE_FLOOR, cutoff, MAX_PROMOTIONS_PER_CYCLE * 3) as PromotionCandidate[];
 
     result.candidates = candidates.length;
 
     if (verbose) {
-      result.details.push(`Found ${candidates.length} candidate facts from ${allPoolPersonas.size} pool personas`);
+      result.details.push(`Found ${candidates.length} candidate facts from ${allPoolPersonas.size} pool personas + shared`);
     }
 
     // Check each candidate for existing promotion links

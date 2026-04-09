@@ -173,8 +173,9 @@ export function markBriefingInjected(): void {
  * Returns null if persona is excluded or briefing generation fails.
  */
 export async function injectSessionBriefing(personaSlug: string): Promise<string | null> {
-  const EXCLUDED_PERSONAS = ["claude-code", "gemini-cli", "hermes-agent", "codex-cli"];
-  if (EXCLUDED_PERSONAS.includes(personaSlug)) return null;
+  // No persona exclusions — CLI transports (claude-code, gemini-cli, codex-cli)
+  // should never be passed here; the caller maps them to the intended persona.
+  // Hermes is excluded at the rule level (omits --persona flag).
 
   try {
     const domain = getPersonaDomain(personaSlug);

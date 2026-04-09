@@ -511,10 +511,40 @@ export function createEpisodeRecord(db: Database, episode: EpisodeRecordInput): 
   return id;
 }
 
+/**
+ * Quality gate: reject conversation fragments that aren't actionable open loops.
+ * Returns true if the title looks like noise (philosophical quotes, extracted fragments).
+ */
+function isOpenLoopNoise(title: string): boolean {
+  const t = title.trim();
+  if (t.length > 120) return true;
+  if (/^[a-z]/.test(t) && !/^(npm|git|bun|apt|curl|cd |ls )/.test(t)) return true;
+  if (/[—…]/.test(t)) return true;
+  if (/\b(like composing|like an? |as if |metaphor|orchestra|harmonize|soar|mantra)\b/i.test(t)) return true;
+  if (/\b(must (outpace|work|fulfill)|it's not enough|peace of mind|not just)\b/i.test(t)) return true;
+  if (t.endsWith("?") && !/^(fix|resolve|update|check|review|debug|add|remove|create|implement|deploy|migrate)/i.test(t)) return true;
+  return false;
+}
+
 export function upsertOpenLoop(db: Database, input: OpenLoopInput): OpenLoopRecord {
   ensureContinuationSchema(db);
   const persona = input.persona || "shared";
   const title = input.title.trim();
+
+  if (isOpenLoopNoise(title)) {
+    return {
+      id: "skipped-noise",
+      persona,
+      title,
+      summary: title,
+      kind: input.kind || "commitment",
+      status: "resolved",
+      priority: 0,
+      entity: "",
+      fingerprint: "",
+    } as OpenLoopRecord;
+  }
+
   const summary = (input.summary || input.title).trim();
   const kind = input.kind || loopKindFromText(`${title} ${summary}`);
   const status = input.status || "open";
