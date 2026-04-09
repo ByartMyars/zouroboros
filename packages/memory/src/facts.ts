@@ -19,6 +19,25 @@ const TTL_DEFAULTS: Record<DecayClass, number | null> = {
 
 type Category = 'preference' | 'fact' | 'decision' | 'convention' | 'other' | 'reference' | 'project';
 
+const DEDUP_SUBSTR_LEN = 60;
+
+/**
+ * Deduplicate search results by checking for 60-char substring overlap.
+ * Keeps the higher-scored entry when overlap is found.
+ */
+function deduplicateResults(results: MemorySearchResult[]): MemorySearchResult[] {
+  const seen: string[] = [];
+  return results.filter(r => {
+    const val = r.entry.value;
+    const substr = val.slice(0, DEDUP_SUBSTR_LEN);
+    if (seen.some(s => s === substr || val.includes(s) || s.includes(substr.slice(0, 40)))) {
+      return false;
+    }
+    seen.push(substr);
+    return true;
+  });
+}
+
 interface StoreFactInput {
   entity: string;
   key?: string;
@@ -307,6 +326,9 @@ export async function searchFactsHybrid(
       score: r.score,
       matchType: 'hybrid' as const,
     }));
+
+  // Deduplicate by 60-char substring overlap (Gap 10)
+  fused = deduplicateResults(fused);
 
   // LLM reranking pass
   if (shouldRerank && fused.length > 0) {

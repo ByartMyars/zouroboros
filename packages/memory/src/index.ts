@@ -92,6 +92,10 @@ export type { CaptureResult, CaptureOptions } from './capture.js';
 // MCP Server
 export { handleMessage, startMcpServer } from './mcp-server.js';
 
+// Procedures
+export { searchProcedures, getProcedure, getProcedureVersions, compareProcedureVersions, getProcedureEpisodes } from './procedures.js';
+export type { Procedure, ProcedureStep, ProcedureComparison, ProcedureEpisode } from './procedures.js';
+
 // v4 Enhancements — Context Budget (MEM-001)
 export {
   estimateTokens,

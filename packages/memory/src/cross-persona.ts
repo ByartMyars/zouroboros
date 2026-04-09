@@ -95,13 +95,59 @@ export function getAccessiblePersonas(db: Database, persona: string): string[] {
   return [...new Set(direct)];
 }
 
-export function searchCrossPersona(db: Database, persona: string, query: string, limit = 10): Array<Record<string, unknown>> {
+export interface CrossPersonaResult {
+  facts: Array<Record<string, unknown>>;
+  accessInfo: {
+    queryingAs: string;
+    accessiblePersonas: string[];
+    accessPaths: Record<string, string>;
+  };
+}
+
+/**
+ * Resolve how each persona is accessible (own, pool:name, inherited:parent).
+ */
+function resolveAccessPaths(db: Database, persona: string, accessible: string[]): Record<string, string> {
+  const paths: Record<string, string> = {};
+  paths[persona] = 'own';
+
+  // Pool-based access
+  const pools = db.prepare("SELECT pool_id FROM persona_pool_members WHERE persona = ?").all(persona) as Array<Record<string, unknown>>;
+  for (const pool of pools) {
+    const poolName = (db.prepare("SELECT name FROM persona_pools WHERE id = ?").get(pool.pool_id as string) as Record<string, unknown> | null)?.name as string | undefined;
+    const members = db.prepare("SELECT persona FROM persona_pool_members WHERE pool_id = ? AND persona != ?").all(pool.pool_id as string, persona) as Array<Record<string, unknown>>;
+    for (const m of members) {
+      const p = m.persona as string;
+      if (!paths[p]) paths[p] = `pool:${poolName || pool.pool_id}`;
+    }
+  }
+
+  // Inheritance-based access
+  const parents = db.prepare("SELECT parent_persona, depth FROM persona_inheritance WHERE child_persona = ? ORDER BY depth ASC").all(persona) as Array<Record<string, unknown>>;
+  for (const parent of parents) {
+    const p = parent.parent_persona as string;
+    if (!paths[p]) paths[p] = `inherited:depth-${parent.depth}`;
+  }
+
+  return paths;
+}
+
+export function searchCrossPersona(db: Database, persona: string, query: string, limit = 10): CrossPersonaResult {
   const accessible = getAccessiblePersonas(db, persona);
-  if (accessible.length === 0) return [];
+  const accessPaths = resolveAccessPaths(db, persona, accessible);
+
+  if (accessible.length === 0) {
+    return {
+      facts: [],
+      accessInfo: { queryingAs: persona, accessiblePersonas: [], accessPaths: {} },
+    };
+  }
+
   const placeholders = accessible.map(() => "?").join(",");
   const safeQuery = query.replace(/['"*]/g, "").trim();
+  let facts: Array<Record<string, unknown>> = [];
   try {
-    return db.prepare(`
+    facts = db.prepare(`
       SELECT f.*, rank,
         CASE WHEN f.persona = ? THEN 1.0 ELSE 0.8 END as access_bonus
       FROM facts f
@@ -111,7 +157,22 @@ export function searchCrossPersona(db: Database, persona: string, query: string,
       ORDER BY rank * (CASE WHEN f.persona = ? THEN 1.0 ELSE 0.8 END) ASC
       LIMIT ?
     `).all(persona, safeQuery, ...accessible, Math.floor(Date.now() / 1000), persona, limit) as Array<Record<string, unknown>>;
-  } catch { return []; }
+  } catch { /* FTS match error — return empty */ }
+
+  // Enrich each fact with its access path
+  for (const fact of facts) {
+    const factPersona = fact.persona as string;
+    fact.accessPath = accessPaths[factPersona] || 'unknown';
+  }
+
+  return {
+    facts,
+    accessInfo: {
+      queryingAs: persona,
+      accessiblePersonas: accessible,
+      accessPaths,
+    },
+  };
 }
 
 async function main() {
@@ -158,9 +219,9 @@ async function main() {
   }
   else if (command === "search") {
     if (!flags.persona || !flags.query) { console.error("--persona and --query required"); process.exit(1); }
-    const results = await searchCrossPersona(db, flags.persona, flags.query);
-    if (results.length === 0) { console.log("No results."); }
-    else { results.forEach(r => console.log(`  [${(r.persona as string).padEnd(20)}] ${(r.entity as string)}.${(r.key || "_") as string} = ${(r.value as string).slice(0, 80)}`)); }
+    const { facts } = await searchCrossPersona(db, flags.persona, flags.query);
+    if (facts.length === 0) { console.log("No results."); }
+    else { facts.forEach(r => console.log(`  [${(r.persona as string).padEnd(20)}] ${(r.entity as string)}.${(r.key || "_") as string} = ${(r.value as string).slice(0, 80)}`)); }
   }
   db.close();
 }

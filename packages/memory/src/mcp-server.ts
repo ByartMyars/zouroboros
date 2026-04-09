@@ -16,6 +16,7 @@ import { getProfile, updateTraits, updatePreferences, recordInteraction, getProf
 import { ensureProfileSchema } from './profiles.js';
 import { buildEntityGraph, getRelatedEntities } from './graph.js';
 import { extractFromText } from './capture.js';
+import { searchProcedures, getProcedure, getProcedureVersions, compareProcedureVersions, getProcedureEpisodes } from './procedures.js';
 import type { MemoryConfig } from 'zouroboros-core';
 
 // ============================================================================
@@ -128,6 +129,23 @@ const TOOLS: McpToolDefinition[] = [
     },
   },
   {
+    name: 'memory_procedures',
+    description: 'Query stored procedures (workflow memory). Search, get specific versions, compare versions, or list linked episodes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['search', 'get', 'versions', 'compare', 'episodes'], description: 'Action: search by name, get specific, list versions, compare two versions, or get linked episodes' },
+        name: { type: 'string', description: 'Procedure name (for get/versions/compare/episodes)' },
+        query: { type: 'string', description: 'Search query (for search action)' },
+        version: { type: 'number', description: 'Specific version (for get)' },
+        fromVersion: { type: 'number', description: 'Version to compare from (for compare)' },
+        toVersion: { type: 'number', description: 'Version to compare to (for compare)' },
+        limit: { type: 'number', description: 'Max results (default 10)' },
+      },
+      required: ['action'],
+    },
+  },
+  {
     name: 'memory_stats',
     description: 'Get memory system statistics',
     inputSchema: {
@@ -230,6 +248,30 @@ async function handleToolCall(
         depth: args.depth as number | undefined,
         limit: args.limit as number | undefined,
       });
+    }
+
+    case 'memory_procedures': {
+      const action = args.action as string;
+      if (action === 'search') {
+        return searchProcedures(args.query as string, args.limit as number | undefined);
+      }
+      if (action === 'get') {
+        return getProcedure(args.name as string, args.version as number | undefined);
+      }
+      if (action === 'versions') {
+        return getProcedureVersions(args.name as string);
+      }
+      if (action === 'compare') {
+        return compareProcedureVersions(
+          args.name as string,
+          args.fromVersion as number,
+          args.toVersion as number,
+        );
+      }
+      if (action === 'episodes') {
+        return getProcedureEpisodes(args.name as string, args.limit as number | undefined);
+      }
+      throw new Error(`Unknown memory_procedures action: ${action}`);
     }
 
     case 'memory_stats': {
