@@ -1,0 +1,1428 @@
+{
+  "metadata": {
+    "name": "ZouroBench",
+    "version": "1.0.0",
+    "description": "Benchmark for procedural recall, cross-persona knowledge transfer, and swarm context propagation \u2014 capabilities unique to the Zouroboros ecosystem.",
+    "created": "2026-04-09",
+    "categories": [
+      "procedural-recall",
+      "cross-persona-transfer",
+      "swarm-context-propagation"
+    ]
+  },
+  "personas": [
+    {
+      "id": "alaric",
+      "name": "Alaric",
+      "role": "primary-operator",
+      "pools": [
+        "ops-pool",
+        "dev-pool"
+      ]
+    },
+    {
+      "id": "financial-advisor",
+      "name": "Financial Advisor",
+      "role": "finance",
+      "pools": [
+        "finance-pool"
+      ]
+    },
+    {
+      "id": "backend-architect",
+      "name": "Backend Architect",
+      "role": "engineering",
+      "pools": [
+        "dev-pool"
+      ]
+    },
+    {
+      "id": "content-strategist",
+      "name": "Content Strategist",
+      "role": "marketing",
+      "pools": [
+        "marketing-pool"
+      ]
+    },
+    {
+      "id": "security-auditor",
+      "name": "Security Auditor",
+      "role": "security",
+      "pools": [
+        "ops-pool",
+        "dev-pool"
+      ]
+    },
+    {
+      "id": "junior-dev",
+      "name": "Junior Developer",
+      "role": "engineering",
+      "inheritsFrom": [
+        "backend-architect",
+        "alaric"
+      ]
+    }
+  ],
+  "pools": [
+    {
+      "id": "ops-pool",
+      "name": "Operations",
+      "description": "Shared operational knowledge"
+    },
+    {
+      "id": "dev-pool",
+      "name": "Development",
+      "description": "Shared development knowledge"
+    },
+    {
+      "id": "finance-pool",
+      "name": "Finance",
+      "description": "Financial operations"
+    },
+    {
+      "id": "marketing-pool",
+      "name": "Marketing",
+      "description": "Marketing and content"
+    }
+  ],
+  "procedures": [
+    {
+      "name": "deploy-production",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run tsc --noEmit to verify TypeScript compiles",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run full test suite with bun test",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Push to staging branch and verify CI passes",
+              "timeoutSeconds": 600
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Merge staging to main via PR",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Monitor production logs for 5 minutes post-deploy",
+              "timeoutSeconds": 600
+            }
+          ],
+          "successCount": 8,
+          "failureCount": 3
+        },
+        {
+          "version": 2,
+          "evolvedFrom": "v1",
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run tsc --noEmit to verify TypeScript compiles",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run full test suite with bun test",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run integration tests against staging DB",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Push to staging branch and verify CI passes",
+              "timeoutSeconds": 600
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Run smoke tests against staging URL",
+              "timeoutSeconds": 300,
+              "fallbackExecutor": "claude-code"
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Merge staging to main via PR",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Monitor production logs for 10 minutes post-deploy",
+              "timeoutSeconds": 900
+            }
+          ],
+          "successCount": 12,
+          "failureCount": 1
+        }
+      ]
+    },
+    {
+      "name": "incident-response",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "hermes",
+              "taskPattern": "Check service health via service_doctor",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Pull last 100 lines of error logs from /dev/shm/",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Analyze error patterns and identify root cause",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Implement fix and run targeted tests",
+              "timeoutSeconds": 600
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Restart affected service and verify recovery",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Send incident summary email to user",
+              "timeoutSeconds": 60
+            }
+          ],
+          "successCount": 5,
+          "failureCount": 2
+        }
+      ]
+    },
+    {
+      "name": "memory-maintenance",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run decay sweep to expire stale facts",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Rebuild FTS index for facts_fts",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run knowledge-promoter cycle across all pools",
+              "timeoutSeconds": 180
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Generate graph connectivity report",
+              "timeoutSeconds": 120
+            }
+          ],
+          "successCount": 15,
+          "failureCount": 0
+        }
+      ]
+    },
+    {
+      "name": "blog-publish-pipeline",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Content strategist creates outline with title options",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Visual storyteller drafts from approved outline",
+              "timeoutSeconds": 600
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Humanizer skill strips AI-isms and adds voice",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Generate hero image with fal-ai-media skill",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Update zo.space blog route and index page",
+              "timeoutSeconds": 300
+            }
+          ],
+          "successCount": 4,
+          "failureCount": 1
+        }
+      ]
+    },
+    {
+      "name": "security-audit-scan",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Scan dependencies for known CVEs with npm audit",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Check for hardcoded secrets in codebase",
+              "timeoutSeconds": 180
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Review API endpoints for authentication gaps",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Run OWASP ZAP baseline scan against staging",
+              "timeoutSeconds": 600
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Generate security report with findings and remediations",
+              "timeoutSeconds": 300
+            }
+          ],
+          "successCount": 3,
+          "failureCount": 0
+        }
+      ]
+    },
+    {
+      "name": "backtest-optimization",
+      "versions": [
+        {
+          "version": 1,
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Load historical OHLCV data for target symbols",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run strategy backtest with current parameters",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Calculate Sharpe ratio, max drawdown, and win rate",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Compare against benchmark (SPY buy-and-hold)",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Generate parameter sensitivity heatmap",
+              "timeoutSeconds": 180
+            }
+          ],
+          "successCount": 7,
+          "failureCount": 2
+        },
+        {
+          "version": 2,
+          "evolvedFrom": "v1",
+          "steps": [
+            {
+              "executor": "claude-code",
+              "taskPattern": "Load historical OHLCV data for target symbols",
+              "timeoutSeconds": 120
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Split data into train (70%) and test (30%) periods",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Run strategy backtest on training data",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Calculate Sharpe ratio, max drawdown, and win rate",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Validate on out-of-sample test data",
+              "timeoutSeconds": 300
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Compare against benchmark (SPY buy-and-hold)",
+              "timeoutSeconds": 60
+            },
+            {
+              "executor": "claude-code",
+              "taskPattern": "Generate parameter sensitivity heatmap",
+              "timeoutSeconds": 180
+            },
+            {
+              "executor": "hermes",
+              "taskPattern": "Email backtest results report to user",
+              "timeoutSeconds": 60
+            }
+          ],
+          "successCount": 9,
+          "failureCount": 0
+        }
+      ]
+    }
+  ],
+  "episodes": [
+    {
+      "id": "ep-001",
+      "summary": "Deployed zouroboros v1.1.0 to npm \u2014 all 5 packages published successfully",
+      "outcome": "success",
+      "procedure": "deploy-production",
+      "procedureVersion": 2,
+      "entities": [
+        "zouroboros",
+        "npm",
+        "deploy"
+      ],
+      "happenedDaysAgo": 2,
+      "durationMs": 342000
+    },
+    {
+      "id": "ep-002",
+      "summary": "Production deploy failed \u2014 TypeScript compilation error in swarm/src/db/schema.ts:20 due to hardcoded DB path",
+      "outcome": "failure",
+      "procedure": "deploy-production",
+      "procedureVersion": 1,
+      "entities": [
+        "zouroboros",
+        "swarm",
+        "deploy",
+        "typescript"
+      ],
+      "happenedDaysAgo": 14,
+      "durationMs": 180000
+    },
+    {
+      "id": "ep-003",
+      "summary": "Memory maintenance completed \u2014 decayed 47 stale facts, promoted 12 cross-persona facts, graph connectivity at 90%",
+      "outcome": "success",
+      "procedure": "memory-maintenance",
+      "procedureVersion": 1,
+      "entities": [
+        "memory",
+        "maintenance",
+        "graph"
+      ],
+      "happenedDaysAgo": 1,
+      "durationMs": 45000
+    },
+    {
+      "id": "ep-004",
+      "summary": "Incident: JHF trading bot stopped executing \u2014 WAL lock on shared-facts.db blocked all writes for 3 hours",
+      "outcome": "failure",
+      "procedure": "incident-response",
+      "procedureVersion": 1,
+      "entities": [
+        "jhf",
+        "trading",
+        "wal-lock",
+        "incident"
+      ],
+      "happenedDaysAgo": 7,
+      "durationMs": 720000
+    },
+    {
+      "id": "ep-005",
+      "summary": "Published blog post 'Reducing Tool Call Failures' to zo.space \u2014 3-persona pipeline completed in 25 minutes",
+      "outcome": "success",
+      "procedure": "blog-publish-pipeline",
+      "procedureVersion": 1,
+      "entities": [
+        "blog",
+        "zo.space",
+        "content"
+      ],
+      "happenedDaysAgo": 5,
+      "durationMs": 1500000
+    },
+    {
+      "id": "ep-006",
+      "summary": "Security audit found 2 high-severity issues: exposed API key in client bundle, missing CSRF protection on webhook endpoint",
+      "outcome": "success",
+      "procedure": "security-audit-scan",
+      "procedureVersion": 1,
+      "entities": [
+        "security",
+        "audit",
+        "api-key",
+        "csrf"
+      ],
+      "happenedDaysAgo": 10,
+      "durationMs": 900000
+    },
+    {
+      "id": "ep-007",
+      "summary": "Backtest optimization for Stochastic RSI strategy \u2014 Sharpe improved from 2.1 to 4.13 with lookbackDays=260",
+      "outcome": "success",
+      "procedure": "backtest-optimization",
+      "procedureVersion": 2,
+      "entities": [
+        "backtest",
+        "stochastic-rsi",
+        "sharpe",
+        "trading"
+      ],
+      "happenedDaysAgo": 3,
+      "durationMs": 600000
+    },
+    {
+      "id": "ep-008",
+      "summary": "Incident resolved: Hermes agent model healer switched 3 agents from claude-3-opus to claude-sonnet-4-20250514 after 402 credit exhaustion",
+      "outcome": "resolved",
+      "procedure": "incident-response",
+      "procedureVersion": 1,
+      "entities": [
+        "hermes",
+        "model-healer",
+        "credits",
+        "incident"
+      ],
+      "happenedDaysAgo": 4,
+      "durationMs": 120000
+    },
+    {
+      "id": "ep-009",
+      "summary": "Memory maintenance failed \u2014 Ollama embedding service was down, FTS rebuild skipped, 0 facts promoted",
+      "outcome": "failure",
+      "procedure": "memory-maintenance",
+      "procedureVersion": 1,
+      "entities": [
+        "memory",
+        "ollama",
+        "embedding",
+        "maintenance"
+      ],
+      "happenedDaysAgo": 8,
+      "durationMs": 15000
+    },
+    {
+      "id": "ep-010",
+      "summary": "Blog publish failed at humanizer step \u2014 output was empty, fell back to manual editing",
+      "outcome": "failure",
+      "procedure": "blog-publish-pipeline",
+      "procedureVersion": 1,
+      "entities": [
+        "blog",
+        "humanizer",
+        "content"
+      ],
+      "happenedDaysAgo": 12,
+      "durationMs": 900000
+    },
+    {
+      "id": "ep-011",
+      "summary": "Deployed Fauna & Flora site rebuild \u2014 47 pages, SEO score improved from 62 to 89",
+      "outcome": "success",
+      "procedure": "deploy-production",
+      "procedureVersion": 2,
+      "entities": [
+        "ffb",
+        "fauna-flora",
+        "deploy",
+        "seo"
+      ],
+      "happenedDaysAgo": 6,
+      "durationMs": 480000
+    },
+    {
+      "id": "ep-012",
+      "summary": "Backtest optimization for VWAP MR strategy \u2014 Sharpe ratio 1.8, max drawdown -12%, win rate 58%",
+      "outcome": "success",
+      "procedure": "backtest-optimization",
+      "procedureVersion": 1,
+      "entities": [
+        "backtest",
+        "vwap-mr",
+        "trading"
+      ],
+      "happenedDaysAgo": 9,
+      "durationMs": 450000
+    }
+  ],
+  "facts": [
+    {
+      "persona": "alaric",
+      "entity": "zouroboros",
+      "key": "version",
+      "value": "v1.1.0 released 2026-04-01 with all P0/P1/ECC items complete",
+      "category": "project",
+      "importance": 0.9
+    },
+    {
+      "persona": "alaric",
+      "entity": "zouroboros",
+      "key": "monorepo-status",
+      "value": "All core repos migrated and archived \u2014 consolidation complete",
+      "category": "project",
+      "importance": 0.85
+    },
+    {
+      "persona": "alaric",
+      "entity": "zo-memory",
+      "key": "embedding-model",
+      "value": "nomic-embed-text via local Ollama \u2014 768-dim vectors",
+      "category": "convention",
+      "importance": 0.8
+    },
+    {
+      "persona": "alaric",
+      "entity": "zo-memory",
+      "key": "answer-model",
+      "value": "gpt-4o-mini for reranking and answer generation \u2014 migrated from Ollama 2026-04-07",
+      "category": "convention",
+      "importance": 0.8
+    },
+    {
+      "persona": "alaric",
+      "entity": "deploy",
+      "key": "ci-gate",
+      "value": "All changes to main branch require PR + CI gate \u2014 no direct pushes",
+      "category": "convention",
+      "importance": 0.95
+    },
+    {
+      "persona": "alaric",
+      "entity": "backup",
+      "key": "retention",
+      "value": "Backups/ and Archive/ directories use 30-day retention policy",
+      "category": "convention",
+      "importance": 0.7
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "jhf-trading",
+      "key": "stochastic-rsi-sharpe",
+      "value": "Optimized Sharpe ratio 4.13 with lookbackDays=260, stochPeriod=14",
+      "category": "fact",
+      "importance": 0.9
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "jhf-trading",
+      "key": "vwap-mr-performance",
+      "value": "VWAP MR strategy: Sharpe 1.8, max drawdown -12%, win rate 58%",
+      "category": "fact",
+      "importance": 0.85
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "jhf-trading",
+      "key": "position-sizing",
+      "value": "Never exceed 5% of portfolio per single position \u2014 house rule",
+      "category": "convention",
+      "importance": 0.95
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "jhf-trading",
+      "key": "crypto-baseline",
+      "value": "Crypto bot baselines: $17.9K Stochastic, $4.8K VWAP MR paper trading",
+      "category": "fact",
+      "importance": 0.8
+    },
+    {
+      "persona": "backend-architect",
+      "entity": "swarm",
+      "key": "routing-strategy",
+      "value": "6-signal composite routing: capability, health, complexity, history, procedure, temporal",
+      "category": "convention",
+      "importance": 0.9
+    },
+    {
+      "persona": "backend-architect",
+      "entity": "swarm",
+      "key": "executor-transports",
+      "value": "Three transport types: BridgeTransport (Hermes), ACPTransport (Claude Code/Codex), CloudTransport (Gemini)",
+      "category": "convention",
+      "importance": 0.85
+    },
+    {
+      "persona": "backend-architect",
+      "entity": "swarm",
+      "key": "dag-modes",
+      "value": "DAG execution supports streaming and waves modes \u2014 waves for dependency-heavy DAGs",
+      "category": "convention",
+      "importance": 0.8
+    },
+    {
+      "persona": "backend-architect",
+      "entity": "database",
+      "key": "sqlite-wal",
+      "value": "All SQLite databases use WAL mode \u2014 concurrent readers, single writer",
+      "category": "convention",
+      "importance": 0.85
+    },
+    {
+      "persona": "content-strategist",
+      "entity": "blog",
+      "key": "pipeline",
+      "value": "3-persona chain: content-strategist outline \u2192 visual-storyteller draft \u2192 humanizer final pass",
+      "category": "convention",
+      "importance": 0.9
+    },
+    {
+      "persona": "content-strategist",
+      "entity": "blog",
+      "key": "aesthetics",
+      "value": "zo.space blog uses Glow component, prose-zinc prose-invert, bg-zinc-950 base, accent from cyan/emerald/amber/purple palette",
+      "category": "convention",
+      "importance": 0.8
+    },
+    {
+      "persona": "content-strategist",
+      "entity": "ffb-marketing",
+      "key": "brand-voice",
+      "value": "Fauna & Flora Botanicals: warm, botanical, educational tone \u2014 never clinical or pushy",
+      "category": "convention",
+      "importance": 0.85
+    },
+    {
+      "persona": "security-auditor",
+      "entity": "security",
+      "key": "api-key-exposure",
+      "value": "Found exposed API key in client bundle during 2026-03-30 audit \u2014 remediated same day",
+      "category": "fact",
+      "importance": 0.95
+    },
+    {
+      "persona": "security-auditor",
+      "entity": "security",
+      "key": "csrf-finding",
+      "value": "Missing CSRF protection on webhook endpoint \u2014 added token validation 2026-03-30",
+      "category": "fact",
+      "importance": 0.9
+    },
+    {
+      "persona": "security-auditor",
+      "entity": "security",
+      "key": "secret-storage",
+      "value": "All secrets must be in Zo Settings > Advanced > Secrets \u2014 never in code or env files",
+      "category": "convention",
+      "importance": 0.95
+    },
+    {
+      "persona": "security-auditor",
+      "entity": "deploy",
+      "key": "branch-protection",
+      "value": "Main branch protected: all changes via PR + CI gate, no direct pushes",
+      "category": "convention",
+      "importance": 0.95
+    },
+    {
+      "persona": "alaric",
+      "entity": "omniroute",
+      "key": "status",
+      "value": "OmniRoute permanently removed from Zouroboros ecosystem 2026-04-01",
+      "category": "decision",
+      "importance": 0.9
+    },
+    {
+      "persona": "alaric",
+      "entity": "npm-publish",
+      "key": "status",
+      "value": "npm publishing ON HOLD until Project Diamondhead stabilized + CortexDB migration complete",
+      "category": "decision",
+      "importance": 0.85
+    },
+    {
+      "persona": "backend-architect",
+      "entity": "acp",
+      "key": "integration-status",
+      "value": "ACP integration complete 2026-04-04: ExecutorTransport abstraction, BridgeTransport, ACPTransport for Claude Code/Codex/Gemini",
+      "category": "project",
+      "importance": 0.9
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "risk",
+      "key": "stop-loss-rule",
+      "value": "Always suggest stop-loss levels for new positions \u2014 calculate based on ATR or percentage method",
+      "category": "convention",
+      "importance": 0.95
+    },
+    {
+      "persona": "financial-advisor",
+      "entity": "risk",
+      "key": "concentration-limit",
+      "value": "Flag if single position exceeds 5% of portfolio or single sector exceeds 25%",
+      "category": "convention",
+      "importance": 0.9
+    },
+    {
+      "persona": "alaric",
+      "entity": "fal-key",
+      "key": "runtime-constraint",
+      "value": "FAL_KEY only available in Zo secrets \u2014 must run fal-ai-media via mcp__zo__run_bash_command, not local Bash",
+      "category": "convention",
+      "importance": 0.8
+    },
+    {
+      "persona": "alaric",
+      "entity": "zo-env-vars",
+      "key": "replace-behavior",
+      "value": "update_user_service env_vars is full REPLACE not merge \u2014 always pass complete set",
+      "category": "convention",
+      "importance": 0.9
+    }
+  ],
+  "swarm_dags": [
+    {
+      "id": "dag-site-rebuild",
+      "name": "Fauna Flora Site Rebuild",
+      "tasks": [
+        {
+          "id": "t1",
+          "persona": "backend-architect",
+          "task": "Audit existing site structure and identify broken pages",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": []
+        },
+        {
+          "id": "t2",
+          "persona": "security-auditor",
+          "task": "Run security scan on current site deployment",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": []
+        },
+        {
+          "id": "t3",
+          "persona": "content-strategist",
+          "task": "Review all product descriptions for SEO optimization",
+          "priority": "medium",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t1"
+          ]
+        },
+        {
+          "id": "t4",
+          "persona": "backend-architect",
+          "task": "Implement new page templates based on audit findings",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t1",
+            "t2"
+          ]
+        },
+        {
+          "id": "t5",
+          "persona": "content-strategist",
+          "task": "Rewrite product copy with optimized keywords from t3",
+          "priority": "medium",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t3",
+            "t4"
+          ]
+        },
+        {
+          "id": "t6",
+          "persona": "alaric",
+          "task": "Deploy rebuilt site and run smoke tests",
+          "priority": "critical",
+          "executor": "hermes",
+          "dependsOn": [
+            "t4",
+            "t5"
+          ]
+        }
+      ],
+      "results": {
+        "t1": {
+          "success": true,
+          "output": "Found 12 broken links, 3 missing meta tags, 2 pages returning 404. Recommended restructuring /products/ into category-based layout.",
+          "artifacts": [
+            "audit-report.md"
+          ]
+        },
+        "t2": {
+          "success": true,
+          "output": "No critical vulnerabilities. 1 medium: Content-Security-Policy header missing. 2 low: outdated jQuery (3.5.1), missing X-Frame-Options.",
+          "artifacts": [
+            "security-scan.json"
+          ]
+        },
+        "t3": {
+          "success": true,
+          "output": "Analyzed 47 product pages. Top keywords: 'grass-fed tallow', 'botanical skincare', 'organic body butter'. Missing long-tail terms on 23 pages.",
+          "artifacts": [
+            "seo-analysis.csv"
+          ]
+        },
+        "t4": {
+          "success": true,
+          "output": "Created 5 new page templates: product-detail, category-listing, about, blog-index, blog-post. Implemented responsive grid layout with Tailwind.",
+          "artifacts": [
+            "templates/"
+          ]
+        },
+        "t5": {
+          "success": true,
+          "output": "Rewrote copy for all 47 product pages with target keywords. Average keyword density improved from 0.8% to 2.1%.",
+          "artifacts": [
+            "product-copy-v2/"
+          ]
+        },
+        "t6": {
+          "success": true,
+          "output": "Deployed to production. All 47 pages render correctly. Lighthouse score: Performance 94, SEO 89, Accessibility 96. Zero console errors.",
+          "artifacts": [
+            "lighthouse-report.json"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dag-trading-hardening",
+      "name": "JHF Trading Bot Hardening Sprint",
+      "tasks": [
+        {
+          "id": "t1",
+          "persona": "financial-advisor",
+          "task": "Review all active trading strategies for risk compliance",
+          "priority": "critical",
+          "executor": "claude-code",
+          "dependsOn": []
+        },
+        {
+          "id": "t2",
+          "persona": "backend-architect",
+          "task": "Audit bot-engine.ts for race conditions and error handling gaps",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": []
+        },
+        {
+          "id": "t3",
+          "persona": "financial-advisor",
+          "task": "Implement software stop-loss fallback for all strategies",
+          "priority": "critical",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t1"
+          ]
+        },
+        {
+          "id": "t4",
+          "persona": "backend-architect",
+          "task": "Fix Sharpe ratio calculation bug and add health gates",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t2"
+          ]
+        },
+        {
+          "id": "t5",
+          "persona": "security-auditor",
+          "task": "Verify API key rotation and secure storage for Alpaca credentials",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t2"
+          ]
+        },
+        {
+          "id": "t6",
+          "persona": "alaric",
+          "task": "Run integration tests and deploy hardened bot",
+          "priority": "critical",
+          "executor": "hermes",
+          "dependsOn": [
+            "t3",
+            "t4",
+            "t5"
+          ]
+        }
+      ],
+      "results": {
+        "t1": {
+          "success": true,
+          "output": "3 strategies active: Stochastic RSI (compliant), VWAP MR (missing stop-loss on 2 symbols), Hybrid (position sizing exceeds 5% rule on DOGE). Flagged for remediation.",
+          "artifacts": [
+            "risk-review.md"
+          ]
+        },
+        "t2": {
+          "success": true,
+          "output": "Found 4 issues: (1) unsynchronized bot_trades write, (2) missing error catch in WebSocket reconnect, (3) Sharpe calc uses arithmetic not log returns, (4) no circuit breaker on API failures.",
+          "artifacts": [
+            "audit-findings.json"
+          ]
+        },
+        "t3": {
+          "success": true,
+          "output": "Implemented software stop-loss with 3-tier cascade: (1) ATR-based trailing stop, (2) percentage hard stop at -5%, (3) daily loss limit at -2% portfolio. Applied to all 3 strategies.",
+          "artifacts": [
+            "stop-loss-impl.ts"
+          ]
+        },
+        "t4": {
+          "success": true,
+          "output": "Fixed Sharpe to use log returns. Added health gates: minimum 10 closed trades, 40% win rate, and stop-loss coverage >80% before live trading. Circuit breaker trips after 3 consecutive API failures.",
+          "artifacts": [
+            "health-gates.ts"
+          ]
+        },
+        "t5": {
+          "success": true,
+          "output": "Alpaca API keys stored in Zo Secrets (not env files). Rotation schedule: every 90 days. Added key expiry warning in health dashboard.",
+          "artifacts": [
+            "security-config.json"
+          ]
+        },
+        "t6": {
+          "success": true,
+          "output": "All 21 integration tests pass. Bot deployed with hardened config. Paper trading activated for 48-hour validation period before live switch.",
+          "artifacts": [
+            "test-results.json",
+            "deploy-log.txt"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dag-memory-migration",
+      "name": "Memory Model Migration (Ollama \u2192 gpt-4o-mini)",
+      "tasks": [
+        {
+          "id": "t1",
+          "persona": "backend-architect",
+          "task": "Design model-client.ts abstraction layer for multi-provider LLM access",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": []
+        },
+        {
+          "id": "t2",
+          "persona": "backend-architect",
+          "task": "Implement 4 workloads: gate, extraction, summarization, briefing",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t1"
+          ]
+        },
+        {
+          "id": "t3",
+          "persona": "alaric",
+          "task": "Migrate memory-gate.ts from direct Ollama calls to model-client",
+          "priority": "medium",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t2"
+          ]
+        },
+        {
+          "id": "t4",
+          "persona": "alaric",
+          "task": "Run memory benchmark suite to validate no regression",
+          "priority": "high",
+          "executor": "claude-code",
+          "dependsOn": [
+            "t3"
+          ]
+        }
+      ],
+      "results": {
+        "t1": {
+          "success": true,
+          "output": "Created model-client.ts with OpenAIProvider and OllamaProvider. Auto-selects based on OPENAI_API_KEY availability. Supports temperature, maxTokens, json mode per workload.",
+          "artifacts": [
+            "model-client.ts"
+          ]
+        },
+        "t2": {
+          "success": true,
+          "output": "Implemented 4 workloads with model mapping: gate\u2192qwen2.5:1.5b (Ollama, zero cost), extraction\u2192gpt-4o-mini, summarization\u2192gpt-4o-mini, briefing\u2192gpt-4o-mini. Estimated cost ~$0.13/month.",
+          "artifacts": [
+            "workload-config.json"
+          ]
+        },
+        "t3": {
+          "success": true,
+          "output": "Migrated memory-gate.ts to use mcGenerate() from model-client. Gate still runs on local Ollama (qwen2.5:1.5b) for zero-cost classification. All other memory operations use gpt-4o-mini.",
+          "artifacts": [
+            "memory-gate.ts"
+          ]
+        },
+        "t4": {
+          "success": true,
+          "output": "ConvoMem: 86.67% (unchanged). LongMemEval: 48.8% \u2192 50% (slight improvement from better answer generation). No regressions detected.",
+          "artifacts": [
+            "benchmark-results.json"
+          ]
+        }
+      }
+    }
+  ],
+  "questions": {
+    "procedural-recall": [
+      {
+        "id": "pr-01",
+        "question": "What are the steps in the deploy-production procedure?",
+        "answer": "The current version (v2) has 7 steps: (1) tsc --noEmit, (2) run test suite, (3) integration tests against staging DB, (4) push to staging + CI, (5) smoke tests against staging URL, (6) merge staging to main via PR, (7) monitor production logs for 10 minutes",
+        "type": "step-recall",
+        "procedure": "deploy-production",
+        "version": 2
+      },
+      {
+        "id": "pr-02",
+        "question": "What changed between v1 and v2 of the deploy-production procedure?",
+        "answer": "V2 added integration tests against staging DB (step 3), smoke tests against staging URL (step 5 with fallback executor), and increased post-deploy monitoring from 5 to 10 minutes",
+        "type": "evolution-tracking"
+      },
+      {
+        "id": "pr-03",
+        "question": "Which procedure has the highest success rate?",
+        "answer": "memory-maintenance has 100% success rate (15 successes, 0 failures)",
+        "type": "aggregate-query"
+      },
+      {
+        "id": "pr-04",
+        "question": "What is the fallback executor for smoke tests in the deploy-production procedure?",
+        "answer": "claude-code is the fallback executor for smoke tests (step 5 of v2)",
+        "type": "step-detail"
+      },
+      {
+        "id": "pr-05",
+        "question": "How many steps does the incident-response procedure have?",
+        "answer": "6 steps: check health, pull error logs, analyze root cause, implement fix, restart service, send incident summary email",
+        "type": "step-recall",
+        "procedure": "incident-response",
+        "version": 1
+      },
+      {
+        "id": "pr-06",
+        "question": "Which executor is used most frequently across all procedures?",
+        "answer": "claude-code is the most frequently used executor across all procedures",
+        "type": "aggregate-query"
+      },
+      {
+        "id": "pr-07",
+        "question": "What procedure was used when the blog post 'Reducing Tool Call Failures' was published?",
+        "answer": "blog-publish-pipeline",
+        "type": "episode-procedure-link"
+      },
+      {
+        "id": "pr-08",
+        "question": "How many times has the backtest-optimization procedure failed?",
+        "answer": "Version 1 had 2 failures and version 2 had 0 failures, total 2 failures across all versions",
+        "type": "aggregate-query"
+      },
+      {
+        "id": "pr-09",
+        "question": "What procedure evolved to add a train/test data split?",
+        "answer": "backtest-optimization evolved from v1 to v2, adding a step to split data into train (70%) and test (30%) periods",
+        "type": "evolution-tracking"
+      },
+      {
+        "id": "pr-10",
+        "question": "Which procedures use the hermes executor for their final step?",
+        "answer": "deploy-production (v1 and v2) and incident-response use hermes for their final step. Also backtest-optimization v2.",
+        "type": "cross-procedure-query"
+      },
+      {
+        "id": "pr-11",
+        "question": "What was the duration of the most recent deploy-production episode?",
+        "answer": "342 seconds (5.7 minutes) for the zouroboros v1.1.0 deploy (episode ep-001)",
+        "type": "episode-temporal"
+      },
+      {
+        "id": "pr-12",
+        "question": "List all procedures that have never failed",
+        "answer": "memory-maintenance (15/15 success) and security-audit-scan (3/3 success)",
+        "type": "aggregate-query"
+      },
+      {
+        "id": "pr-13",
+        "question": "What procedure should be used to handle a production service outage?",
+        "answer": "incident-response \u2014 steps: check health, pull error logs, analyze root cause, implement fix, restart service, send summary email",
+        "type": "semantic-recall"
+      },
+      {
+        "id": "pr-14",
+        "question": "How did the backtest-optimization procedure improve its reliability?",
+        "answer": "V2 added out-of-sample validation by splitting data into train/test sets, plus an email reporting step. Success rate improved from 78% (7/9) to 100% (9/9)",
+        "type": "evolution-tracking"
+      },
+      {
+        "id": "pr-15",
+        "question": "What is the timeout for the longest step across all procedures?",
+        "answer": "900 seconds (15 minutes) \u2014 the post-deploy monitoring step in deploy-production v2",
+        "type": "cross-procedure-query"
+      }
+    ],
+    "cross-persona-transfer": [
+      {
+        "id": "cp-01",
+        "question": "As junior-dev, what does the backend-architect know about swarm routing?",
+        "answer": "6-signal composite routing: capability, health, complexity, history, procedure, temporal",
+        "queryPersona": "junior-dev",
+        "sourcePersona": "backend-architect",
+        "type": "inheritance-query"
+      },
+      {
+        "id": "cp-02",
+        "question": "As junior-dev, what deployment conventions does alaric follow?",
+        "answer": "All changes to main branch require PR + CI gate \u2014 no direct pushes",
+        "queryPersona": "junior-dev",
+        "sourcePersona": "alaric",
+        "type": "inheritance-query"
+      },
+      {
+        "id": "cp-03",
+        "question": "As alaric, can you access the security auditor's finding about exposed API keys?",
+        "answer": "Yes \u2014 found exposed API key in client bundle during 2026-03-30 audit, remediated same day",
+        "queryPersona": "alaric",
+        "sourcePersona": "security-auditor",
+        "type": "pool-access"
+      },
+      {
+        "id": "cp-04",
+        "question": "As content-strategist, what is the Stochastic RSI Sharpe ratio?",
+        "answer": "The content-strategist cannot access financial-advisor's facts \u2014 they are in different pools with no inheritance",
+        "queryPersona": "content-strategist",
+        "sourcePersona": "financial-advisor",
+        "type": "access-denied"
+      },
+      {
+        "id": "cp-05",
+        "question": "As security-auditor, what is the current zouroboros version?",
+        "answer": "v1.1.0 released 2026-04-01 \u2014 accessible via shared ops-pool membership with alaric",
+        "queryPersona": "security-auditor",
+        "sourcePersona": "alaric",
+        "type": "pool-access"
+      },
+      {
+        "id": "cp-06",
+        "question": "As backend-architect, what are the blog aesthetics conventions?",
+        "answer": "The backend-architect cannot directly access content-strategist's facts \u2014 no shared pool or inheritance chain",
+        "queryPersona": "backend-architect",
+        "sourcePersona": "content-strategist",
+        "type": "access-denied"
+      },
+      {
+        "id": "cp-07",
+        "question": "As alaric, what transport types does the swarm support?",
+        "answer": "Three transport types: BridgeTransport (Hermes), ACPTransport (Claude Code/Codex), CloudTransport (Gemini) \u2014 accessible via shared dev-pool",
+        "queryPersona": "alaric",
+        "sourcePersona": "backend-architect",
+        "type": "pool-access"
+      },
+      {
+        "id": "cp-08",
+        "question": "As junior-dev, what is the position sizing convention for trading?",
+        "answer": "junior-dev cannot access financial-advisor's facts \u2014 no pool or inheritance link",
+        "queryPersona": "junior-dev",
+        "sourcePersona": "financial-advisor",
+        "type": "access-denied"
+      },
+      {
+        "id": "cp-09",
+        "question": "As security-auditor, what DAG execution modes does the swarm support?",
+        "answer": "Streaming and waves modes \u2014 accessible via shared dev-pool with backend-architect",
+        "queryPersona": "security-auditor",
+        "sourcePersona": "backend-architect",
+        "type": "pool-access"
+      },
+      {
+        "id": "cp-10",
+        "question": "As financial-advisor, what secret storage convention does the security auditor enforce?",
+        "answer": "financial-advisor cannot access security-auditor's facts \u2014 no shared pool (finance-pool vs ops-pool/dev-pool)",
+        "queryPersona": "financial-advisor",
+        "sourcePersona": "security-auditor",
+        "type": "access-denied"
+      },
+      {
+        "id": "cp-11",
+        "question": "As alaric, what are all facts accessible about deployment?",
+        "answer": "Alaric can access: own deploy/ci-gate fact (all changes require PR + CI gate), security-auditor's deploy/branch-protection fact (main branch protected, via ops-pool), and related deploy episodes/swarm tasks",
+        "queryPersona": "alaric",
+        "sourcePersona": "multiple",
+        "type": "multi-source-aggregation"
+      },
+      {
+        "id": "cp-12",
+        "question": "As junior-dev, which personas can you inherit knowledge from?",
+        "answer": "backend-architect and alaric (via direct inheritance), plus anyone in dev-pool (backend-architect, alaric, security-auditor via transitive)",
+        "queryPersona": "junior-dev",
+        "sourcePersona": "system",
+        "type": "inheritance-chain"
+      },
+      {
+        "id": "cp-13",
+        "question": "As content-strategist, what marketing knowledge is available in the marketing pool?",
+        "answer": "Content strategist's own facts: blog pipeline (3-persona chain), blog aesthetics, FFB brand voice",
+        "queryPersona": "content-strategist",
+        "sourcePersona": "content-strategist",
+        "type": "self-pool-query"
+      },
+      {
+        "id": "cp-14",
+        "question": "As alaric, what does the financial advisor know about crypto trading baselines?",
+        "answer": "Alaric cannot access financial-advisor's facts \u2014 no shared pool (ops-pool/dev-pool vs finance-pool)",
+        "queryPersona": "alaric",
+        "sourcePersona": "financial-advisor",
+        "type": "access-denied"
+      },
+      {
+        "id": "cp-15",
+        "question": "As security-auditor, what conventions does alaric follow for environment variables?",
+        "answer": "update_user_service env_vars is full REPLACE not merge \u2014 always pass complete set. Accessible via shared ops-pool.",
+        "queryPersona": "security-auditor",
+        "sourcePersona": "alaric",
+        "type": "pool-access"
+      }
+    ],
+    "swarm-context-propagation": [
+      {
+        "id": "sc-01",
+        "question": "In the site rebuild DAG, what security issues did t2 find that informed t4's implementation?",
+        "answer": "t2 found Content-Security-Policy header missing (medium), outdated jQuery 3.5.1 (low), missing X-Frame-Options (low). t4 used these findings to create secure page templates.",
+        "dag": "dag-site-rebuild",
+        "type": "dependency-context"
+      },
+      {
+        "id": "sc-02",
+        "question": "In the trading hardening DAG, what did t1's risk review flag that t3 needed to fix?",
+        "answer": "t1 flagged VWAP MR missing stop-loss on 2 symbols and Hybrid position sizing exceeding 5% rule on DOGE. t3 implemented 3-tier stop-loss cascade for all strategies.",
+        "dag": "dag-trading-hardening",
+        "type": "dependency-context"
+      },
+      {
+        "id": "sc-03",
+        "question": "Which tasks in the site rebuild DAG could run in parallel (wave 1)?",
+        "answer": "t1 (audit site structure) and t2 (security scan) \u2014 they have no dependencies",
+        "dag": "dag-site-rebuild",
+        "type": "dag-structure"
+      },
+      {
+        "id": "sc-04",
+        "question": "What was the critical path in the trading hardening DAG?",
+        "answer": "t1 \u2192 t3 \u2192 t6 (risk review \u2192 stop-loss implementation \u2192 deploy), or t2 \u2192 t4 \u2192 t6 (code audit \u2192 health gates \u2192 deploy), or t2 \u2192 t5 \u2192 t6 (code audit \u2192 security verify \u2192 deploy). All three paths converge at t6.",
+        "dag": "dag-trading-hardening",
+        "type": "dag-structure"
+      },
+      {
+        "id": "sc-05",
+        "question": "In the memory migration DAG, what abstraction did t1 produce that t2 consumed?",
+        "answer": "t1 produced model-client.ts with OpenAIProvider and OllamaProvider abstractions. t2 used it to implement 4 workloads (gate, extraction, summarization, briefing) with per-workload model mapping.",
+        "dag": "dag-memory-migration",
+        "type": "dependency-context"
+      },
+      {
+        "id": "sc-06",
+        "question": "What artifacts were produced in wave 1 of the site rebuild DAG?",
+        "answer": "audit-report.md (from t1) and security-scan.json (from t2)",
+        "dag": "dag-site-rebuild",
+        "type": "artifact-tracking"
+      },
+      {
+        "id": "sc-07",
+        "question": "How many total artifacts were produced across the entire trading hardening DAG?",
+        "answer": "7 artifacts: risk-review.md, audit-findings.json, stop-loss-impl.ts, health-gates.ts, security-config.json, test-results.json, deploy-log.txt (t6 produced 2)",
+        "dag": "dag-trading-hardening",
+        "type": "artifact-tracking"
+      },
+      {
+        "id": "sc-08",
+        "question": "In the memory migration DAG, did the benchmark validation in t4 show any regression?",
+        "answer": "No regression \u2014 ConvoMem stayed at 86.67%, LongMemEval improved slightly from 48.8% to 50%",
+        "dag": "dag-memory-migration",
+        "type": "result-propagation"
+      },
+      {
+        "id": "sc-09",
+        "question": "Which persona was responsible for the final deployment step in each DAG?",
+        "answer": "alaric in all three DAGs: t6 in site-rebuild, t6 in trading-hardening, t4 in memory-migration (benchmark validation was the final gate)",
+        "dag": "all",
+        "type": "role-analysis"
+      },
+      {
+        "id": "sc-10",
+        "question": "In the trading hardening DAG, what specific bug did t2 find in the Sharpe calculation?",
+        "answer": "t2 found that Sharpe ratio calculation used arithmetic returns instead of log returns",
+        "dag": "dag-trading-hardening",
+        "type": "detail-extraction"
+      },
+      {
+        "id": "sc-11",
+        "question": "What was the SEO score improvement after the site rebuild DAG completed?",
+        "answer": "SEO score improved to 89 (Lighthouse report from t6). Product pages keyword density improved from 0.8% to 2.1% (from t5).",
+        "dag": "dag-site-rebuild",
+        "type": "outcome-synthesis"
+      },
+      {
+        "id": "sc-12",
+        "question": "In the memory migration DAG, which workload still runs on local Ollama and why?",
+        "answer": "The gate workload runs on local Ollama (qwen2.5:1.5b) for zero-cost classification. All other workloads (extraction, summarization, briefing) use gpt-4o-mini.",
+        "dag": "dag-memory-migration",
+        "type": "detail-extraction"
+      },
+      {
+        "id": "sc-13",
+        "question": "What is the estimated monthly cost of the memory model migration?",
+        "answer": "Approximately $0.13/month \u2014 stated in t2's output about workload implementation",
+        "dag": "dag-memory-migration",
+        "type": "detail-extraction"
+      },
+      {
+        "id": "sc-14",
+        "question": "In the trading hardening DAG, what validation period was set before going live?",
+        "answer": "48-hour paper trading validation period before live switch (stated in t6's deploy output)",
+        "dag": "dag-trading-hardening",
+        "type": "detail-extraction"
+      },
+      {
+        "id": "sc-15",
+        "question": "Which DAG had all tasks succeed on the first attempt?",
+        "answer": "All three DAGs had 100% task success: site-rebuild (6/6), trading-hardening (6/6), memory-migration (4/4)",
+        "dag": "all",
+        "type": "aggregate-query"
+      }
+    ]
+  }
+}
