@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/marlandoj/zouroboros/actions/workflows/ci.yml"><img src="https://github.com/marlandoj/zouroboros/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/marlandoj/zouroboros/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue.svg" alt="Release v1.1.0" /></a>
+  <a href="https://github.com/marlandoj/zouroboros/releases"><img src="https://img.shields.io/badge/release-v2.0.0-blue.svg" alt="Release v2.0.0" /></a>
   <a href="https://www.npmjs.com/search?q=zouroboros"><img src="https://img.shields.io/npm/v/zouroboros-core.svg?label=npm&color=cb3837" alt="npm" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://zo.computer"><img src="https://img.shields.io/badge/Zo%20Computer-native-green.svg" alt="Zo Computer" /></a>
@@ -12,23 +12,43 @@
 
 ## Overview
 
-Zouroboros consolidates all Zouroboros enhancements into a unified, easy-to-install monorepo. Built from the ground up on [Zo Computer](https://zo.computer) — not ported from external platforms — every module is native to the Zo ecosystem. It provides a complete toolkit for building AI-powered applications with sophisticated memory, multi-agent orchestration, and self-healing capabilities.
+Zouroboros is a self-enhancing AI platform built natively on [Zo Computer](https://zo.computer). It provides production-grade multi-agent orchestration, persistent memory, and autonomous self-healing — all in a unified monorepo. Every module is native to the Zo ecosystem, not ported from external platforms.
 
 ### Key Features
 
-🧠 **Hybrid Memory System** — SQLite + vector embeddings with episodic memory  
-🐝 **Swarm Orchestration** — Multi-agent campaigns with circuit breakers and DAG execution
-🎭 **Persona Framework** — SOUL/IDENTITY architecture with 8-phase creation workflow  
-🔄 **Spec-First Development** — Interview, evaluate, unstuck, and autoloop tools  
-🏥 **Self-Healing** — Daily introspection, prescription, and autonomous evolution  
-💻 **Unified CLI** — Single command interface for all operations  
-📊 **Terminal Dashboard** — Real-time monitoring and control
+- **Hybrid Memory System** — SQLite + vector embeddings with episodic, procedural, and cognitive memory. Domain context injection bridges operational knowledge into swarm tasks.
+- **Swarm Orchestration (v5)** — Multi-agent DAG execution with 4 executors (Claude Code, Gemini, Codex, Hermes), 8-signal composite routing, executor retry/fallback cascades, and mandatory pipeline gates.
+- **Transport Abstraction** — Bridge and ACP (Agent Client Protocol) transports with real-time streaming, enabling communication with any executor backend.
+- **Resilience-First** — Category-aware circuit breakers (8 failure types), cascade failure propagation with 4 recovery policies, stagnation detection with auto-recovery, and 5-layer loop guards (ECC-009).
+- **Pipeline Gates** — Mandatory seed validation, post-flight evaluation, and gap audit loops enforce quality at every stage of swarm execution.
+- **RAG Enrichment** — Ollama embeddings + Qdrant vector search across 19 indexed SDK knowledge bases, injected into task prompts automatically.
+- **Budget Governance** — Per-executor token tracking with USD conversion, alert thresholds, hard caps, and automatic cost-aware executor downgrade.
+- **Role Registry** — 57 seeded roles mapped from personas to executors, with hierarchical delegation and write scope isolation for child tasks.
+- **Persona Framework** — SOUL/IDENTITY architecture with 8-phase creation workflow and persona-scoped fact storage.
+- **Spec-First Development** — Interview, three-stage evaluate, gap audit (4 checks), unstuck, and autoloop tools.
+- **Self-Healing** — Daily introspection, prescription, and autonomous evolution with 12 playbooks and a governor safety gate.
+- **API Server** — Hono REST API with SSE event streaming for real-time budget, heartbeat, and task events.
+- **Heartbeat Scheduler** — Persistent wake cycles with SQLite state for long-running swarm campaigns.
+
+## Architecture
+
+<p align="center">
+  <img src="./assets/zouroboros-architecture.png" alt="Zouroboros Architecture" width="100%" />
+</p>
+
+The architecture is organized into 5 layers:
+
+| Layer | Components |
+|-------|-----------|
+| **Interface** | orchestrate-v5 CLI, Hono REST API, SSE Event Stream, NL Command Center |
+| **Core Systems** | Memory System, Swarm Orchestration, Workflow Tools |
+| **Execution & Intelligence** | Executor System (4 executors, Bridge/ACP transport), 8-Signal Routing Engine, RAG Enrichment (Qdrant + 19 SDKs) |
+| **Resilience & Governance** | Cascade Manager, Stagnation Detector, Budget Governor, Context Sharing |
+| **Foundation** | Personas & Role Registry (57 roles), Self-Heal Engine (12 playbooks), Heartbeat Scheduler |
 
 ## Quick Start
 
 ### Install from npm
-
-Pick the packages you need — no need to clone the whole repo:
 
 ```bash
 # Core types and utilities
@@ -49,7 +69,7 @@ npm install zouroboros-selfheal
 # Persona framework
 npm install zouroboros-personas
 
-# RAG expansion
+# RAG enrichment toolkit
 npm install zouroboros-rag
 
 # CLI (global install)
@@ -64,14 +84,6 @@ npm install zouroboros-core zouroboros-memory zouroboros-swarm zouroboros-workfl
 
 ### From Source
 
-#### One-Line Install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/marlandoj/zouroboros/main/scripts/install.sh | bash
-```
-
-#### Manual Install
-
 ```bash
 git clone https://github.com/marlandoj/zouroboros.git
 cd zouroboros
@@ -81,75 +93,88 @@ zouroboros init
 zouroboros doctor
 ```
 
-#### Skill Install (recommended for distributing to other Zo Computers)
+### Skill Install (Zo Computer)
 
-After installing the monorepo, export all 9 sub-skills as standalone Bun scripts — no build step needed on the target machine:
+For distributing to other Zo Computers as standalone Bun scripts:
 
 ```bash
-# 1. Install prerequisites and initialize databases
 bun ~/Skills/zouroboros/scripts/install.ts
-
-# 2. Verify everything is healthy
 bun ~/Skills/zouroboros/scripts/doctor.ts
 ```
 
-The skill bundles 68 standalone scripts across memory, swarm, selfheal, and workflow. See [Skills/zouroboros/SKILL.md](./Skills/zouroboros/SKILL.md) for full usage.
+## Packages
 
-### Create Agents
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`zouroboros-core`](https://www.npmjs.com/package/zouroboros-core) | ![npm](https://img.shields.io/npm/v/zouroboros-core.svg) | Types, config, utilities |
+| [`zouroboros-memory`](https://www.npmjs.com/package/zouroboros-memory) | ![npm](https://img.shields.io/npm/v/zouroboros-memory.svg) | Hybrid SQLite + vector memory with domain context injection |
+| [`zouroboros-swarm`](https://www.npmjs.com/package/zouroboros-swarm) | ![npm](https://img.shields.io/npm/v/zouroboros-swarm.svg) | v5 orchestration: DAG execution, 8-signal routing, circuit breakers, pipeline gates, executor retry/fallback |
+| [`zouroboros-workflow`](https://www.npmjs.com/package/zouroboros-workflow) | ![npm](https://img.shields.io/npm/v/zouroboros-workflow.svg) | Interview, three-stage eval, gap audit, unstuck, autoloop |
+| [`zouroboros-selfheal`](https://www.npmjs.com/package/zouroboros-selfheal) | ![npm](https://img.shields.io/npm/v/zouroboros-selfheal.svg) | Introspection, prescription & evolution with 12 playbooks |
+| [`zouroboros-personas`](https://www.npmjs.com/package/zouroboros-personas) | ![npm](https://img.shields.io/npm/v/zouroboros-personas.svg) | SOUL/IDENTITY persona framework with scoped fact storage |
+| [`zouroboros-rag`](https://www.npmjs.com/package/zouroboros-rag) | ![npm](https://img.shields.io/npm/v/zouroboros-rag.svg) | RAG enrichment: Ollama + Qdrant, 19 SDK knowledge bases |
+| [`zouroboros-cli`](https://www.npmjs.com/package/zouroboros-cli) | ![npm](https://img.shields.io/npm/v/zouroboros-cli.svg) | Unified CLI |
+| [`zouroboros-tui`](https://www.npmjs.com/package/zouroboros-tui) | ![npm](https://img.shields.io/npm/v/zouroboros-tui.svg) | Terminal dashboard |
 
-Zouroboros includes scheduled agents for daily memory maintenance, self-enhancement, and vault indexing. After installation, create them from Zo Chat:
+## Swarm Orchestration
+
+The swarm orchestrator runs multi-agent campaigns with mandatory quality gates:
 
 ```
-Create all Zouroboros agents from agents/manifest.json
+Seed Spec → Seed Eval Gate → Execute DAG → Post-Flight Eval → Gap Audit Loop
 ```
 
-Then register them locally so `zouroboros doctor` can verify:
+### Executor System
 
-```bash
-zouroboros agents sync
-```
+4 executors communicate through a transport abstraction layer:
 
-This reads `agents/manifest.json` and registers 5 scheduled agents on your Zo Computer:
-- **Memory Embedding Backfill** — indexes new facts nightly
-- **Memory Capture** — captures conversation facts
-- **Unified Decay** — runs memory decay and cleanup
-- **Self-Enhancement Summary** — daily introspect → prescribe → evolve pipeline
-- **Vault Indexer** — indexes workspace files into the knowledge graph
+| Executor | Transport | Best For |
+|----------|-----------|----------|
+| Claude Code | Bridge / ACP | Complex implementation, architecture |
+| Gemini | Bridge / ACP | Research, analysis, content |
+| Codex | Bridge / ACP | Code generation, refactoring |
+| Hermes | Bridge | Autonomous investigation, web research |
+
+Executors are selected via a **5-priority routing decision tree**:
+1. Explicit executor ID in task
+2. Role-based resolution (57 seeded roles)
+3. Budget override (< 20% remaining → cheapest executor)
+4. 8-signal composite routing (capability, health, complexity, history, procedure, temporal, budget, role)
+5. Tag-based heuristic fallback
+
+When an executor fails, the **retry/fallback cascade** automatically reroutes to the next healthy executor with circuit breaker protection (10-min cooldown on credit exhaustion).
+
+### Pipeline Gates
+
+All three gates are enabled by default:
+
+- **Seed Validation** — Pre-execution audit for file paths, schema correctness, DAG conflicts
+- **Post-Flight Evaluation** — Success rate analysis with 50% threshold
+- **Gap Audit Loop** — 4-question validation: reachability, data prerequisites, cross-boundary state, eval-production parity
+
+### Resilience
+
+- **Circuit Breakers** — 8 error categories with distinct thresholds and cooldowns (rate_limited: 1 failure/60s, timeout: 2 failures/30s, permission_denied: 1 failure/300s)
+- **Cascade Manager** — 4 policies: abort_dependents, skip_dependents, retry_then_skip, isolate
+- **Stagnation Detector** — Monitors no_output, repetitive_output, progress_plateau, timeout_approaching
+- **ECC-009 Loop Guard** — 5-layer recursion prevention (origin headers, depth limits, cycle detection, chain timeout, circuit breaker)
 
 ## Usage
-
-### Natural Language (Zo Chat)
-
-```
-Store in memory that I prefer TypeScript for backend development
-```
-
-```
-What do you know about my technology preferences?
-```
-
-```
-Run a spec-first interview for building a REST API
-```
-
-```
-Check my Zouroboros system health
-```
 
 ### CLI
 
 ```bash
-# Memory operations
+# Memory
 zouroboros memory store --entity user --key preference --value "dark mode"
 zouroboros memory search "technology preferences"
 
-# Workflow tools
+# Swarm campaigns
+zouroboros swarm run --tasks campaign.json
+
+# Workflow
 zouroboros workflow interview --topic "Design a database schema"
 zouroboros workflow evaluate --seed seed.yaml --artifact ./src
 zouroboros workflow unstuck --signal "same error keeps happening"
-
-# Swarm campaigns
-zouroboros swarm run --tasks campaign.json
 
 # Persona creation
 zouroboros persona create --name "Security Auditor" --domain security
@@ -159,7 +184,7 @@ zouroboros heal introspect
 zouroboros heal prescribe
 zouroboros heal evolve
 
-# Terminal dashboard
+# Dashboard
 zouroboros tui
 ```
 
@@ -169,10 +194,8 @@ zouroboros tui
 import { Memory } from 'zouroboros-memory';
 import { SwarmOrchestrator } from 'zouroboros-swarm';
 
-// Initialize memory
 const memory = new Memory({ dbPath: './memory.db' });
 
-// Store a fact
 await memory.store({
   entity: 'user',
   key: 'preference',
@@ -181,12 +204,10 @@ await memory.store({
   decayClass: 'permanent',
 });
 
-// Search memory
 const results = await memory.search({ query: 'programming languages' });
 
-// Run a swarm campaign
 const orchestrator = new SwarmOrchestrator();
-const results = await orchestrator.run({
+await orchestrator.run({
   tasks: [
     { id: '1', persona: 'Backend Developer', task: 'Design API' },
     { id: '2', persona: 'Frontend Developer', task: 'Build UI', dependsOn: ['1'] },
@@ -194,46 +215,30 @@ const results = await orchestrator.run({
 });
 ```
 
-## Packages
+### Natural Language (Zo Chat)
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| [`zouroboros-core`](https://www.npmjs.com/package/zouroboros-core) | ![npm](https://img.shields.io/npm/v/zouroboros-core.svg) | Types, config, utilities |
-| [`zouroboros-memory`](https://www.npmjs.com/package/zouroboros-memory) | ![npm](https://img.shields.io/npm/v/zouroboros-memory.svg) | Hybrid SQLite + vector memory |
-| [`zouroboros-swarm`](https://www.npmjs.com/package/zouroboros-swarm) | ![npm](https://img.shields.io/npm/v/zouroboros-swarm.svg) | v5 orchestration: DAG execution, circuit breakers, tier-resolve |
-| [`zouroboros-workflow`](https://www.npmjs.com/package/zouroboros-workflow) | ![npm](https://img.shields.io/npm/v/zouroboros-workflow.svg) | Interview, eval, unstuck, autoloop |
-| [`zouroboros-selfheal`](https://www.npmjs.com/package/zouroboros-selfheal) | ![npm](https://img.shields.io/npm/v/zouroboros-selfheal.svg) | Introspection & evolution |
-| [`zouroboros-personas`](https://www.npmjs.com/package/zouroboros-personas) | ![npm](https://img.shields.io/npm/v/zouroboros-personas.svg) | Persona creation framework |
-| [`zouroboros-rag`](https://www.npmjs.com/package/zouroboros-rag) | ![npm](https://img.shields.io/npm/v/zouroboros-rag.svg) | RAG expansion toolkit |
-| [`zouroboros-cli`](https://www.npmjs.com/package/zouroboros-cli) | ![npm](https://img.shields.io/npm/v/zouroboros-cli.svg) | Unified CLI |
-| [`zouroboros-tui`](https://www.npmjs.com/package/zouroboros-tui) | ![npm](https://img.shields.io/npm/v/zouroboros-tui.svg) | Terminal dashboard |
+```
+Store in memory that I prefer TypeScript for backend development
+Run a spec-first interview for building a REST API
+Check my Zouroboros system health
+```
 
-## Architecture
+## Scheduled Agents
 
-<p align="center">
-  <img src="./assets/zouroboros-architecture.png" alt="Zouroboros Architecture" width="100%" />
-</p>
+After installation, create scheduled agents from Zo Chat:
 
-## Documentation
+```
+Create all Zouroboros agents from agents/manifest.json
+```
 
-- **[Installation Guide](./docs/getting-started/installation.md)** — Get started in minutes
-- **[Quick Start](./docs/getting-started/quickstart.md)** — Build your first project
-- **[Architecture Overview](./docs/architecture/overview.md)** — System design
-- **[CLI Reference](./docs/reference/cli-commands.md)** — Complete command reference
-- **[CLI Commands Reference](./docs/reference/cli-commands.md)** — Programmatic usage and CLI reference
-
-## Examples
-
-See the `examples/` directory for complete projects:
-
-- `basic-memory/` — Memory system fundamentals
-- `swarm-campaign/` — Multi-agent orchestration
-- `persona-creation/` — Building custom personas (see `packages/persona-creator/`)
-- `self-healing/` — Autonomous improvement *(coming soon)*
+This registers 5 agents on your Zo Computer:
+- **Memory Embedding Backfill** — indexes new facts nightly
+- **Memory Capture** — captures conversation facts
+- **Unified Decay** — runs memory decay and cleanup
+- **Self-Enhancement Summary** — daily introspect → prescribe → evolve
+- **Vault Indexer** — indexes workspace files into the knowledge graph
 
 ## Configuration
-
-Zouroboros uses a hierarchical configuration system:
 
 ```yaml
 # ~/.zouroboros/config.yaml
@@ -241,69 +246,32 @@ defaults:
   memory:
     dbPath: ~/.zo/memory/shared-facts.db
     embeddingModel: nomic-embed-text
-  
   swarm:
     localConcurrency: 8
     timeoutSeconds: 600
-    routingStrategy: balanced
+    routingStrategy: balanced  # fast | reliable | balanced | explore
+    pipelineGates:
+      seedValidation: true
+      postFlightEval: true
+      gapAudit: true
 ```
-
-## Self-Healing
-
-Zouroboros can monitor and improve itself:
-
-```bash
-# Run daily introspection
-zouroboros heal introspect --store
-
-# Generate improvement prescription
-zouroboros heal prescribe --live
-
-# Execute improvement
-zouroboros heal evolve --prescription ./prescription.json
-```
-
-The system measures:
-- Memory recall quality
-- Graph connectivity
-- Routing accuracy
-- Evaluation calibration
-- Procedure freshness
-- Episode velocity
-
-## Integration with Zo Computer
-
-Zouroboros is designed to work seamlessly with Zo Computer:
-
-```typescript
-// In Zo chat, you can use natural language:
-"Store that I prefer dark mode interfaces"
-"What's my favorite programming language?"
-"Run a spec-first interview for a new feature"
-"Check my Zouroboros health"
-```
-
-The CLI and Zo chat interface are fully compatible — use whichever is more convenient.
 
 ## Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/marlandoj/zouroboros.git
 cd zouroboros
-
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm run build
-
-# Run tests
-pnpm test
-
-# Start development mode
-pnpm run dev
+pnpm test  # 757+ tests
 ```
+
+## Documentation
+
+- **[Installation Guide](./docs/getting-started/installation.md)** — Get started in minutes
+- **[Quick Start](./docs/getting-started/quickstart.md)** — Build your first project
+- **[Architecture Overview](./docs/architecture/overview.md)** — System design
+- **[CLI Reference](./docs/reference/cli-commands.md)** — Complete command reference
 
 ## Contributing
 
@@ -321,4 +289,4 @@ MIT License — see [LICENSE](./LICENSE) for details.
 
 ---
 
-**Made with ❤️ for the Zo Computer ecosystem**
+**Made with care for the Zo Computer ecosystem**
