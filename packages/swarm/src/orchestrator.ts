@@ -6,9 +6,10 @@
  *
  * Phase 1 extensions: Executor Selector, Budget Governor, Role Registry integration.
  * Phase 2 extensions: RAG Enrichment, Hierarchical Delegation wiring.
+ * Phase 3 extensions: Pipeline enforcement gates (seed validation, post-flight eval, gap audit).
  */
 
-import type { Task, TaskResult, SwarmConfig, ExecutorCapability } from './types.js';
+import type { Task, TaskResult, SwarmConfig, ExecutorCapability, PipelineGateConfig } from './types.js';
 import { CircuitBreakerRegistry } from './circuit/breaker.js';
 import { RoutingEngine } from './routing/engine.js';
 import { loadRegistry, getLocalExecutors } from './registry/loader.js';
@@ -19,11 +20,20 @@ import { selectExecutor, type BudgetSnapshot, type HealthSnapshot } from './sele
 import { BudgetGovernor, type BudgetConfig } from './budget/governor.js';
 import { RoleRegistry } from './roles/registry.js';
 import { prefetchRAGForTasks } from './rag/index.js';
+import { enrichTasksWithDomainContext } from './rag/domain-context.js';
 import {
   evaluateDelegation,
   renderHierarchicalPolicyBlock,
   stripDelegationReport,
 } from './hierarchical.js';
+import { runGapAudit, type GapAuditReport } from './verification/gap-audit.js';
+
+const DEFAULT_PIPELINE_GATES: PipelineGateConfig = {
+  seedValidation: true,
+  postFlightEval: true,
+  gapAuditLoop: true,
+  blockOnSeedFailure: true,
+};
 
 const DEFAULT_CONFIG: SwarmConfig = {
   localConcurrency: 8,
@@ -86,7 +96,7 @@ export class SwarmOrchestrator {
     }
   }
 
-  private resolveExecutor(task: Task): { executorId: string; model?: string } {
+  private resolveExecutor(task: Task): { executorId: string; model?: string; fallbacks: string[] } {
     const health: HealthSnapshot = {};
     const cbStatus = this.circuitBreakers.getStatus();
     for (const [id, state] of Object.entries(cbStatus)) {
@@ -111,7 +121,7 @@ export class SwarmOrchestrator {
     }
 
     const selection = selectExecutor(task, budget, health, this.registryEntries, roleResolution, this.routingEngine);
-    return { executorId: selection.executorId, model: selection.model };
+    return { executorId: selection.executorId, model: selection.model, fallbacks: selection.fallbacks };
   }
 
   initBudget(config: Omit<BudgetConfig, 'swarmId'> & { swarmId?: string }): void {
@@ -167,9 +177,121 @@ export class SwarmOrchestrator {
     return { warnings, errors };
   }
 
+  private getPipelineGates(): PipelineGateConfig {
+    return { ...DEFAULT_PIPELINE_GATES, ...this.config.pipelineGates };
+  }
+
+  /**
+   * Seed Validation Gate — runs gap audit before execution.
+   * Returns critical gaps found. Blocks execution if blockOnSeedFailure is true.
+   */
+  seedValidationGate(): { passed: boolean; report: GapAuditReport; criticalGaps: string[] } {
+    console.log('\n  [SEED GATE] Running pre-execution seed validation...');
+    const report = runGapAudit();
+    const criticalGaps = report.gaps
+      .filter(g => g.severity === 'critical')
+      .map(g => `[${g.capabilityId}] ${g.message}`);
+
+    if (criticalGaps.length > 0) {
+      console.error(`  [SEED GATE] ❌ ${criticalGaps.length} critical gap(s) found:`);
+      for (const gap of criticalGaps) {
+        console.error(`    • ${gap}`);
+      }
+    } else {
+      console.log(`  [SEED GATE] ✅ Passed (${report.summary.totalCapabilities} capabilities verified, ${report.gaps.length} non-critical warnings)`);
+    }
+
+    return { passed: report.passed, report, criticalGaps };
+  }
+
+  /**
+   * Post-flight evaluation — analyzes execution results for quality signals.
+   * Returns a structured report of successes, failures, and fallback usage.
+   */
+  postFlightEval(results: TaskResult[]): {
+    passed: boolean;
+    successRate: number;
+    fallbacksUsed: number;
+    failedTasks: string[];
+    report: string;
+  } {
+    console.log('\n  [POST-FLIGHT] Running post-flight evaluation...');
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    const successRate = results.length > 0 ? successCount / results.length : 0;
+    const fallbacksUsed = results.filter(r => (r.fallbacksAttempted ?? 0) > 0).length;
+    const failedTasks = results.filter(r => !r.success).map(r => r.task.id);
+
+    const lines: string[] = [
+      `Post-Flight Evaluation Report`,
+      `  Total tasks: ${results.length}`,
+      `  Successes: ${successCount} (${(successRate * 100).toFixed(1)}%)`,
+      `  Failures: ${failCount}`,
+      `  Tasks using fallback executors: ${fallbacksUsed}`,
+    ];
+
+    if (failedTasks.length > 0) {
+      lines.push(`  Failed tasks:`);
+      for (const result of results.filter(r => !r.success)) {
+        const fb = result.fallbacksAttempted ? ` (${result.fallbacksAttempted} fallbacks tried)` : '';
+        lines.push(`    • ${result.task.id}: ${result.error?.slice(0, 150)}${fb}`);
+      }
+    }
+
+    for (const result of results.filter(r => (r.fallbacksAttempted ?? 0) > 0 && r.success)) {
+      lines.push(`  [RECOVERY] Task "${result.task.id}" succeeded via fallback executor "${result.effectiveExecutor}" after ${result.fallbacksAttempted} fallback(s)`);
+    }
+
+    const report = lines.join('\n');
+    const passed = successRate >= 0.5; // At least 50% success rate to consider the run viable
+
+    if (passed) {
+      console.log(`  [POST-FLIGHT] ✅ Passed — ${(successRate * 100).toFixed(1)}% success rate`);
+    } else {
+      console.error(`  [POST-FLIGHT] ❌ Failed — ${(successRate * 100).toFixed(1)}% success rate (threshold: 50%)`);
+    }
+
+    return { passed, successRate, fallbacksUsed, failedTasks, report };
+  }
+
+  /**
+   * Post-execution gap audit loop — runs the 4-question gap audit after execution.
+   * Logs findings but does not block (informational for the caller).
+   */
+  postExecutionGapAudit(): GapAuditReport {
+    console.log('\n  [GAP AUDIT] Running post-execution gap audit loop...');
+    const report = runGapAudit();
+
+    const criticals = report.gaps.filter(g => g.severity === 'critical');
+    const warnings = report.gaps.filter(g => g.severity === 'warning');
+
+    if (criticals.length === 0 && warnings.length === 0) {
+      console.log(`  [GAP AUDIT] ✅ All 3 checks passed — no gaps found`);
+    } else {
+      if (criticals.length > 0) {
+        console.error(`  [GAP AUDIT] ❌ ${criticals.length} critical gap(s):`);
+        for (const g of criticals) {
+          console.error(`    • [${g.category}] ${g.message}`);
+          console.error(`      → ${g.remediation}`);
+        }
+      }
+      if (warnings.length > 0) {
+        console.log(`  [GAP AUDIT] ⚠ ${warnings.length} warning(s):`);
+        for (const g of warnings) {
+          console.log(`    • [${g.category}] ${g.message}`);
+        }
+      }
+    }
+
+    return report;
+  }
+
   async run(tasks: Task[]): Promise<TaskResult[]> {
+    const gates = this.getPipelineGates();
     console.log(`Starting swarm execution with ${tasks.length} tasks`);
     console.log(`Mode: ${this.config.dagMode}, Concurrency: ${this.config.localConcurrency}`);
+    console.log(`Pipeline gates: seed=${gates.seedValidation}, postFlight=${gates.postFlightEval}, gapAudit=${gates.gapAuditLoop}`);
 
     // Pre-flight 0: Data checks
     const { warnings, errors } = this.preflightDataChecks();
@@ -186,12 +308,30 @@ export class SwarmOrchestrator {
       }));
     }
 
+    // Pre-flight 0.5: Seed Validation Gate (mandatory by default)
+    if (gates.seedValidation) {
+      const seedResult = this.seedValidationGate();
+      if (!seedResult.passed && gates.blockOnSeedFailure) {
+        console.error('  [SEED GATE] Blocking execution — critical gaps must be resolved first');
+        return tasks.map(task => ({
+          task,
+          success: false,
+          error: `Seed validation failed: ${seedResult.criticalGaps.join('; ')}`,
+          durationMs: 0,
+          retries: 0,
+        }));
+      }
+    } else {
+      console.log('  [SEED GATE] ⚠ SKIPPED (pipelineGates.seedValidation = false)');
+    }
+
     // Pre-flight 1: Resolve executors for all tasks via Executor Selector
     for (const task of tasks) {
       if (!task.executor || task.executor === 'auto') {
         const resolved = this.resolveExecutor(task);
         task.executor = resolved.executorId;
         if (resolved.model) task.model = resolved.model;
+        task.fallbackExecutors = resolved.fallbacks;
       }
     }
 
@@ -217,6 +357,18 @@ export class SwarmOrchestrator {
         }
       } catch (err) {
         console.log(`  [RAG] Pre-flight enrichment failed (non-blocking): ${err}`);
+      }
+    }
+
+    // Pre-flight 2.5: Domain context injection (operational context from memory system)
+    if (this.config.enableMemory) {
+      try {
+        const { enrichedCount, domain } = enrichTasksWithDomainContext(tasks);
+        if (enrichedCount > 0) {
+          console.log(`  [DOMAIN CTX] Injected ${domain} context into ${enrichedCount}/${tasks.length} tasks`);
+        }
+      } catch (err) {
+        console.log(`  [DOMAIN CTX] Domain context injection failed (non-blocking): ${err}`);
       }
     }
 
@@ -284,6 +436,23 @@ export class SwarmOrchestrator {
     console.log(`\nSwarm execution complete:`);
     console.log(`  Success: ${successCount}/${tasks.length}`);
     console.log(`  Failed: ${failCount}/${tasks.length}`);
+
+    // Post-flight 3: Post-flight evaluation (mandatory by default)
+    if (gates.postFlightEval) {
+      const evalResult = this.postFlightEval(results);
+      if (!evalResult.passed) {
+        console.error(`  [POST-FLIGHT] Swarm run has low success rate (${(evalResult.successRate * 100).toFixed(1)}%)`);
+      }
+    } else {
+      console.log('  [POST-FLIGHT] ⚠ SKIPPED (pipelineGates.postFlightEval = false)');
+    }
+
+    // Post-flight 4: Gap audit loop (mandatory by default)
+    if (gates.gapAuditLoop) {
+      this.postExecutionGapAudit();
+    } else {
+      console.log('  [GAP AUDIT] ⚠ SKIPPED (pipelineGates.gapAuditLoop = false)');
+    }
 
     return results;
   }

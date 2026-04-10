@@ -222,55 +222,126 @@ export class DAGExecutor {
 
       this.callStack.add(taskId);
       try {
-        const executor = this.context.getExecutor(task.executor || 'claude-code');
-        if (!executor) {
-          this.results.set(taskId, {
-            task, success: false,
-            error: `Executor ${task.executor} not found`,
-            durationMs: 0, retries: 0,
-          });
-          return;
-        }
+        const primaryExecutorId = task.executor || 'claude-code';
+        const executorChain = [primaryExecutorId, ...(task.fallbackExecutors || [])];
+        let fallbacksAttempted = 0;
+        let lastResult: TaskResult | null = null;
 
         // Build task context from dependencies if context manager is available
         let taskContext: Record<string, unknown> | undefined;
         if (this.context.contextManager) {
           taskContext = this.context.contextManager.buildTaskContext(taskId, task.dependsOn || []);
+          if (taskContext && (task.dependsOn || []).length > 0) {
+            // Fire-and-forget scorecard handoff log (bun:sqlite, non-fatal)
+            try {
+              const { Database } = await import('bun:sqlite');
+              const sc = new Database('/home/workspace/.zo/memory/scorecard.db');
+              sc.run('PRAGMA journal_mode=WAL');
+              sc.run(`CREATE TABLE IF NOT EXISTS swarm_handoffs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL,
+                swarm_id TEXT, from_agent TEXT, to_agent TEXT,
+                context_keys TEXT, context_size INTEGER NOT NULL DEFAULT 0, session_id TEXT
+              )`);
+              sc.run(
+                'INSERT INTO swarm_handoffs (ts,swarm_id,from_agent,to_agent,context_keys,context_size) VALUES (?,?,?,?,?,?)',
+                [Date.now(), this.context.swarmOrigin ?? 'root', (task.dependsOn || []).join(','), taskId, Object.keys(taskContext!).join(','), JSON.stringify(taskContext!).length]
+              );
+              sc.close();
+            } catch { /* non-fatal */ }
+          }
         }
 
         // ECC-009 Layer 1: propagate origin header on task dispatch
         const swarmOrigin = this.context.swarmOrigin ?? 'root';
+        const timeoutMs = (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000;
 
-        const result = await executor.execute(task, {
-          timeoutMs: (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000,
-          ...(taskContext ? { context: taskContext } : {}),
-          headers: { 'x-swarm-origin': swarmOrigin, 'x-swarm-depth': String(this.context.loopDepth ?? 0) },
-        });
+        // Try primary executor, then fallbacks on failure
+        for (let i = 0; i < executorChain.length; i++) {
+          const currentExecutorId = executorChain[i];
+          const executor = this.context.getExecutor(currentExecutorId);
 
-        this.results.set(taskId, result);
+          if (!executor) {
+            if (i < executorChain.length - 1) {
+              console.log(`  [FALLBACK] Executor "${currentExecutorId}" not found, trying next fallback...`);
+              fallbacksAttempted++;
+              continue;
+            }
+            this.results.set(taskId, {
+              task, success: false,
+              error: `No executor available (tried: ${executorChain.slice(0, i + 1).join(' → ')})`,
+              durationMs: 0, retries: 0, fallbacksAttempted,
+            });
+            return;
+          }
 
-        if (result.success) {
-          // Record output for downstream tasks
-          this.context.contextManager?.recordTaskOutput(
-            taskId, result.output || '', true, result.artifacts || []
-          );
-        } else {
-          // Handle failure through cascade manager
+          if (i > 0) {
+            console.log(`  [FALLBACK] Task "${taskId}": retrying with executor "${currentExecutorId}" (attempt ${i + 1}/${executorChain.length})`);
+          }
+
+          const result = await executor.execute(task, {
+            timeoutMs,
+            ...(taskContext ? { context: taskContext } : {}),
+            headers: { 'x-swarm-origin': swarmOrigin, 'x-swarm-depth': String(this.context.loopDepth ?? 0) },
+          });
+
+          result.effectiveExecutor = currentExecutorId;
+          result.fallbacksAttempted = fallbacksAttempted;
+          lastResult = result;
+
+          if (result.success) {
+            this.results.set(taskId, result);
+            this.context.contextManager?.recordTaskOutput(
+              taskId, result.output || '', true, result.artifacts || []
+            );
+            return; // Success — exit the fallback chain
+          }
+
+          // Failed — exhaust cascade retries on same executor before moving to fallback
           if (this.context.cascadeManager) {
             this.context.cascadeManager.handleFailure(taskId, result.error || 'Unknown error');
-            const { retry, backoffMs } = this.context.cascadeManager.shouldRetry(taskId);
-            if (retry) {
+            let retryCount = 0;
+            while (true) {
+              const { retry, backoffMs } = this.context.cascadeManager.shouldRetry(taskId);
+              if (!retry) break;
+              retryCount++;
               await new Promise(r => setTimeout(r, backoffMs));
-              this.results.delete(taskId);
-              this.inProgress.delete(taskId);
-              pending.add(taskId);
-              return;
+              const retryResult = await executor.execute(task, {
+                timeoutMs,
+                ...(taskContext ? { context: taskContext } : {}),
+                headers: { 'x-swarm-origin': swarmOrigin, 'x-swarm-depth': String(this.context.loopDepth ?? 0) },
+              });
+              retryResult.effectiveExecutor = currentExecutorId;
+              retryResult.retries = retryCount;
+              retryResult.fallbacksAttempted = fallbacksAttempted;
+
+              if (retryResult.success) {
+                this.results.set(taskId, retryResult);
+                this.context.contextManager?.recordTaskOutput(
+                  taskId, retryResult.output || '', true, retryResult.artifacts || []
+                );
+                return;
+              }
+              lastResult = retryResult;
+              this.context.cascadeManager.handleFailure(taskId, retryResult.error || 'Unknown error');
             }
           }
 
-          if (this.context.config.notifyOnComplete !== 'none') {
-            console.error(`Task ${taskId} failed: ${result.error}`);
+          // Move to next fallback executor
+          if (i < executorChain.length - 1) {
+            fallbacksAttempted++;
+            console.log(`  [FALLBACK] Executor "${currentExecutorId}" failed: ${result.error?.slice(0, 120)}`);
           }
+        }
+
+        // All executors exhausted
+        if (lastResult) {
+          lastResult.fallbacksAttempted = fallbacksAttempted;
+          lastResult.error = `All executors failed (chain: ${executorChain.join(' → ')}). Last error: ${lastResult.error}`;
+          this.results.set(taskId, lastResult);
+        }
+
+        if (this.context.config.notifyOnComplete !== 'none' && lastResult) {
+          console.error(`Task ${taskId} failed after ${fallbacksAttempted} fallback(s): ${lastResult.error}`);
         }
       } finally {
         this.callStack.delete(taskId);
@@ -354,15 +425,9 @@ export class DAGExecutor {
             throw err;
           }
 
-          const executor = this.context.getExecutor(task.executor || 'claude-code');
-          if (!executor) {
-            this.results.set(taskId, {
-              task, success: false,
-              error: `Executor ${task.executor} not found`,
-              durationMs: 0, retries: 0,
-            });
-            return;
-          }
+          const primaryExecutorId = task.executor || 'claude-code';
+          const executorChain = [primaryExecutorId, ...(task.fallbackExecutors || [])];
+          let fallbacksAttempted = 0;
 
           // Build context from dependencies
           let taskContext: Record<string, unknown> | undefined;
@@ -370,24 +435,66 @@ export class DAGExecutor {
             taskContext = this.context.contextManager.buildTaskContext(taskId, task.dependsOn || []);
           }
 
-          // ECC-009 Layer 1: propagate origin header (waves mode)
           const swarmOrigin = this.context.swarmOrigin ?? 'root';
+          const timeoutMs = (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000;
+
           this.callStack.add(taskId);
-          const result = await executor.execute(task, {
-            timeoutMs: (task.timeoutSeconds || this.context.config.timeoutSeconds) * 1000,
-            ...(taskContext ? { context: taskContext } : {}),
-            headers: { 'x-swarm-origin': swarmOrigin, 'x-swarm-depth': String(this.context.loopDepth ?? 0) },
-          });
+          let finalResult: TaskResult | null = null;
+
+          for (let i = 0; i < executorChain.length; i++) {
+            const currentExecutorId = executorChain[i];
+            const executor = this.context.getExecutor(currentExecutorId);
+
+            if (!executor) {
+              if (i < executorChain.length - 1) {
+                fallbacksAttempted++;
+                continue;
+              }
+              finalResult = {
+                task, success: false,
+                error: `No executor available (tried: ${executorChain.slice(0, i + 1).join(' → ')})`,
+                durationMs: 0, retries: 0, fallbacksAttempted,
+              };
+              break;
+            }
+
+            if (i > 0) {
+              console.log(`  [FALLBACK/WAVE] Task "${taskId}": trying executor "${currentExecutorId}" (attempt ${i + 1})`);
+            }
+
+            const result = await executor.execute(task, {
+              timeoutMs,
+              ...(taskContext ? { context: taskContext } : {}),
+              headers: { 'x-swarm-origin': swarmOrigin, 'x-swarm-depth': String(this.context.loopDepth ?? 0) },
+            });
+            result.effectiveExecutor = currentExecutorId;
+            result.fallbacksAttempted = fallbacksAttempted;
+
+            if (result.success) {
+              finalResult = result;
+              this.context.contextManager?.recordTaskOutput(
+                taskId, result.output || '', true
+              );
+              break;
+            }
+
+            // Try cascade retry on same executor before fallback
+            if (this.context.cascadeManager) {
+              this.context.cascadeManager.handleFailure(taskId, result.error || 'Unknown error');
+            }
+
+            if (i < executorChain.length - 1) {
+              fallbacksAttempted++;
+              console.log(`  [FALLBACK/WAVE] Executor "${currentExecutorId}" failed, trying next...`);
+            } else {
+              result.error = `All executors failed (chain: ${executorChain.join(' → ')}). Last: ${result.error}`;
+              finalResult = result;
+            }
+          }
+
           this.callStack.delete(taskId);
-
-          this.results.set(taskId, result);
-
-          if (result.success) {
-            this.context.contextManager?.recordTaskOutput(
-              taskId, result.output || '', true
-            );
-          } else if (this.context.cascadeManager) {
-            this.context.cascadeManager.handleFailure(taskId, result.error || 'Unknown error');
+          if (finalResult) {
+            this.results.set(taskId, finalResult);
           }
         });
 

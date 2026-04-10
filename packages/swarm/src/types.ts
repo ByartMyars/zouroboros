@@ -66,6 +66,8 @@ export interface Task {
     priority?: PriorityQueue;
     tags?: string[];
   };
+  /** Ordered fallback executor IDs populated during executor resolution */
+  fallbackExecutors?: string[];
 }
 
 export interface TaskResult {
@@ -81,6 +83,8 @@ export interface TaskResult {
   delegated?: boolean;
   modelUsed?: string;
   effectiveExecutor?: string;
+  /** Number of fallback executors tried before success/final failure */
+  fallbacksAttempted?: number;
 }
 
 export interface LoopGuardConfig {
@@ -98,6 +102,17 @@ export interface RAGEnrichmentConfig {
   minScore?: number;
 }
 
+export interface PipelineGateConfig {
+  /** Run seed validation gate before execution. Default: true */
+  seedValidation: boolean;
+  /** Run post-flight evaluation after execution. Default: true */
+  postFlightEval: boolean;
+  /** Run gap audit loop after post-flight eval. Default: true */
+  gapAuditLoop: boolean;
+  /** Abort execution if seed validation finds critical gaps. Default: true */
+  blockOnSeedFailure: boolean;
+}
+
 export interface SwarmConfig {
   localConcurrency: number;
   timeoutSeconds: number;
@@ -112,6 +127,8 @@ export interface SwarmConfig {
   hierarchicalDelegation?: HierarchicalDelegationConfig;
   ragEnrichment?: RAGEnrichmentConfig;
   loopGuard?: Partial<LoopGuardConfig>;
+  /** Pipeline gate enforcement — all gates ON by default */
+  pipelineGates?: Partial<PipelineGateConfig>;
 }
 
 export interface CircuitBreakerState {

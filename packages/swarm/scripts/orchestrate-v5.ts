@@ -97,6 +97,7 @@ const CB_PERSIST_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour max age
 const ERROR_CATEGORIES = [
   "timeout",
   "rate_limited",
+  "credit_exhausted",
   "permission_denied",
   "context_overflow",
   "mutation_failed",
@@ -110,6 +111,7 @@ type ErrorCategory = typeof ERROR_CATEGORIES[number];
 const CB_FAILURE_THRESHOLDS: Record<ErrorCategory, number> = {
   timeout: 2,
   rate_limited: 1,
+  credit_exhausted: 1,
   permission_denied: 1,
   context_overflow: 2,
   mutation_failed: 3,
@@ -121,6 +123,7 @@ const CB_FAILURE_THRESHOLDS: Record<ErrorCategory, number> = {
 // Category-aware base cooldowns (ms)
 const CB_BASE_COOLDOWN_MS: Record<ErrorCategory, number> = {
   rate_limited: 60_000,
+  credit_exhausted: 600_000,
   permission_denied: 300_000,
   timeout: 30_000,
   context_overflow: 30_000,
@@ -260,6 +263,39 @@ interface TaskResult {
   effectiveExecutor?: string;
 }
 
+type PipelineMode = "full" | "execute-only" | "skip";
+
+interface PipelineConfig {
+  seedEvalGate: boolean;
+  interactiveApproval: boolean;
+  postFlightEval: boolean;
+  gapAudit: boolean;
+  memoryGateIntegration: boolean;
+}
+
+interface SeedEvalResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  score: number;
+  amended: boolean;
+}
+
+interface PostFlightResult {
+  passed: boolean;
+  stage1: { tscClean: boolean; testsPass: boolean; buildClean: boolean; errors: string[] };
+  stage2: { criteriaChecked: number; criteriaPassed: number; failures: string[] };
+  stage3: { consensusNeeded: boolean; consensusResult?: string };
+}
+
+interface GapAuditResult {
+  passed: boolean;
+  reachability: { passed: boolean; findings: string[] };
+  dataPrerequisites: { passed: boolean; findings: string[] };
+  crossBoundaryState: { passed: boolean; findings: string[] };
+  evalProductionParity: { passed: boolean; findings: string[] };
+}
+
 interface OrchestratorConfig {
   localConcurrency: number;
   timeoutSeconds: number;
@@ -287,6 +323,8 @@ interface OrchestratorConfig {
   // Cascade
   cascadeMode: boolean;
   hierarchicalDelegation: HierarchicalDelegationConfig;
+  // Pipeline enforcement (v5.1)
+  pipeline: PipelineConfig;
 }
 
 interface LocalAgentInvocation {
@@ -551,6 +589,13 @@ const DEFAULT_CONFIG: OrchestratorConfig = {
     defaultMode: "auto",
     claudeCodeMaxChildren: 2,
     hermesMaxChildren: 3,
+  },
+  pipeline: {
+    seedEvalGate: true,
+    interactiveApproval: false,
+    postFlightEval: true,
+    gapAudit: true,
+    memoryGateIntegration: true,
   },
 };
 
@@ -859,6 +904,9 @@ function classifyError(errorStr: string): ErrorClassification {
 
   if (e.includes("timeout") || e.includes("deadline exceeded") || e.includes("timed out")) {
     return { type: "timeout", retryable: true, suggestedAction: "Retry with longer timeout or reduce task scope" };
+  }
+  if (e.includes("credit") || e.includes("quota exceeded") || e.includes("402") || e.includes("payment required") || e.includes("insufficient") || e.includes("billing") || e.includes("usage limit")) {
+    return { type: "credit_exhausted", retryable: true, suggestedAction: "Reroute to different executor — credits depleted on this one" };
   }
   if (e.includes("rate limit") || e.includes("too many requests") || e.includes("429")) {
     return { type: "rate_limited", retryable: true, suggestedAction: "Wait and retry with exponential backoff" };
@@ -2019,15 +2067,18 @@ class SwarmOrchestrator {
     const cat = task.memoryMetadata?.category || "general";
 
     let retries = 0;
+    let reroutes = 0;
+    const MAX_REROUTES = Object.keys(this.executors).length;
     const tried = new Set<string>();
+    const exhaustedExecutors = new Set<string>();
     let recentOutputs: string[] = [];
 
     while (retries <= this.config.maxRetries) {
-      // Route to executor
+      // Route to executor — with fallback chain awareness
       let exid: string;
-      if (task.executor && retries === 0) {
+      if (task.executor && retries === 0 && reroutes === 0) {
         exid = task.executor;
-      } else if (task.persona && task.persona !== "auto" && retries === 0) {
+      } else if (task.persona && task.persona !== "auto" && retries === 0 && reroutes === 0) {
         exid = task.persona;
       } else {
         const decision = route(
@@ -2040,12 +2091,20 @@ class SwarmOrchestrator {
         );
         exid = decision.executorId;
 
-        // Retry-with-reroute: try different executor on retry
-        if (tried.has(exid) && tried.size < Object.keys(this.executors).length) {
-          const alternatives = Object.keys(this.executors).filter(e => !tried.has(e));
+        // Skip exhausted executors and those already tried
+        if (exhaustedExecutors.has(exid) || (tried.has(exid) && tried.size < Object.keys(this.executors).length)) {
+          const alternatives = Object.keys(this.executors)
+            .filter(e => !exhaustedExecutors.has(e) && !tried.has(e));
           if (alternatives.length > 0) {
             exid = alternatives[0];
-            console.log(`  🔄 [${task.id}] Rerouting to ${exid}`);
+            console.log(`  🔄 [${task.id}] Rerouting to ${exid} (avoiding ${[...exhaustedExecutors].join(", ") || "tried executors"})`);
+          } else {
+            // All executors exhausted or tried — fall back to least-recently-failed
+            const fallback = Object.keys(this.executors).filter(e => !exhaustedExecutors.has(e));
+            if (fallback.length > 0) {
+              exid = fallback[0];
+              console.log(`  🔄 [${task.id}] Last-resort reroute to ${exid}`);
+            }
           }
         }
       }
@@ -2063,7 +2122,18 @@ class SwarmOrchestrator {
       const bp = this.backpressureStates.get(exid)!;
 
       if (!canAttempt(cb)) {
-        console.log(`  ⏏️  [${task.id}] Circuit OPEN for ${exid}, waiting...`);
+        // If circuit open, try to reroute instead of waiting
+        if (reroutes < MAX_REROUTES) {
+          const alternatives = Object.keys(this.executors)
+            .filter(e => !exhaustedExecutors.has(e) && e !== exid);
+          if (alternatives.length > 0) {
+            exhaustedExecutors.add(exid);
+            reroutes++;
+            console.log(`  ⏏️  [${task.id}] Circuit OPEN for ${exid}, rerouting (not waiting)`);
+            continue;
+          }
+        }
+        console.log(`  ⏏️  [${task.id}] Circuit OPEN for ${exid}, no alternatives — waiting ${Math.round(cb.cooldownMs / 1000)}s...`);
         await new Promise(r => setTimeout(r, cb.cooldownMs));
         continue;
       }
@@ -2082,7 +2152,7 @@ class SwarmOrchestrator {
       // Build optimized prompt
       const prompt = await this.buildOptimizedPrompt(task, exid, retries > 0 ? recentOutputs : []);
 
-      console.log(`  ▶️  [${task.id}] ${exid} (attempt ${retries + 1}/${this.config.maxRetries + 1}) model=${resolvedModel} [${modelSource}] tier=${complexity.tier}`);
+      console.log(`  ▶️  [${task.id}] ${exid} (attempt ${retries + 1}/${this.config.maxRetries + 1}, reroute ${reroutes}/${MAX_REROUTES}) model=${resolvedModel} [${modelSource}] tier=${complexity.tier}`);
 
       const t0 = Date.now();
       try {
@@ -2123,6 +2193,7 @@ class SwarmOrchestrator {
           durationMs: duration,
           delegated: invocation.delegated,
           childCount: childRecords.length,
+          reroutes,
         });
         if (childRecords.length > 0) {
           this.logger.log("task_child_records", { taskId: task.id, executor: exid, childRecords });
@@ -2160,6 +2231,7 @@ class SwarmOrchestrator {
           taskId: task.id,
           executor: exid,
           attempt: retries,
+          reroute: reroutes,
           errorType: classified.type,
           retryable: classified.retryable,
         });
@@ -2172,6 +2244,14 @@ class SwarmOrchestrator {
           error: errorStr.slice(0, 500),
           suggested_action: classified.suggestedAction,
         };
+
+        // Credit exhaustion or rate limit: reroute immediately without burning a retry
+        if ((classified.type === "credit_exhausted" || classified.type === "rate_limited") && reroutes < MAX_REROUTES) {
+          exhaustedExecutors.add(exid);
+          reroutes++;
+          console.log(`  💳 [${task.id}] ${exid} ${classified.type} — rerouting to next executor (reroute ${reroutes}/${MAX_REROUTES}, retries preserved at ${retries})`);
+          continue;
+        }
 
         retries++;
 
