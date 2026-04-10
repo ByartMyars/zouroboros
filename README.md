@@ -284,6 +284,7 @@ MIT License — see [LICENSE](./LICENSE) for details.
 ## Acknowledgments
 
 - Inspired by [Q00/ouroboros](https://github.com/Q00/ouroboros) for spec-first development patterns
+- Inspired by Karpathy's AutoResearch and 2ndBrain concepts for auto-loop and memory enhancements
 - Built natively on [Zo Computer](https://zo.computer) — [try Zo Computer](https://zo-computer.cello.so/IgX9SnGpKnR)
 - Thanks to all contributors and the Zo community
 
