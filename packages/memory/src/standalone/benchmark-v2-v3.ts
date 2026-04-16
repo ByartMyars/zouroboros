@@ -147,7 +147,7 @@ function seedDatabase(db: Database): SeedFact[] {
     // Memory system cluster (should be linked)
     { id: "", entity: "system.memory", key: "version", value: "Hybrid SQLite plus vector search with nomic-embed-text embeddings", category: "fact", decay: "stable" },
     { id: "", entity: "system.memory", key: "database", value: "SQLite with FTS5 and WAL mode at .zo/memory/shared-facts.db", category: "fact", decay: "permanent" },
-    { id: "", entity: "decision.memory-cli", key: "choice", value: "Use memory-next.ts as canonical CLI, supports store search hybrid index stats", category: "decision", decay: "permanent" },
+    { id: "", entity: "decision.memory-cli", key: "choice", value: "Use memory.ts as canonical CLI, supports store search hybrid index stats", category: "decision", decay: "permanent" },
     { id: "", entity: "system.memory", key: "gate", value: "Ollama-powered memory gate filters 40-60% of messages saving tokens", category: "fact", decay: "stable" },
     // User preferences (isolated/orphan)
     { id: "", entity: "user", key: "name", value: "Jason Marland, based in Phoenix Arizona", category: "preference", decay: "permanent" },

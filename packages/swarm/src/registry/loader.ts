@@ -5,13 +5,15 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { isAbsolute, join } from 'path';
 import type { ExecutorRegistryEntry } from '../types.js';
 
 const DEFAULT_REGISTRY_PATHS = [
   'Skills/zo-swarm-executors/registry/executor-registry.json',
   '.zouroboros/executors.json',
 ];
+
+const WORKSPACE_ROOT = process.env.ZOUROBOROS_WORKSPACE_ROOT || '/home/workspace';
 
 export interface Registry {
   executors: ExecutorRegistryEntry[];
@@ -20,9 +22,9 @@ export interface Registry {
 
 export function loadRegistry(customPath?: string): Registry {
   const paths = customPath ? [customPath] : DEFAULT_REGISTRY_PATHS;
-  
+
   for (const path of paths) {
-    const fullPath = join('/home/workspace', path);
+    const fullPath = isAbsolute(path) ? path : join(WORKSPACE_ROOT, path);
     if (existsSync(fullPath)) {
       try {
         const content = readFileSync(fullPath, 'utf-8');

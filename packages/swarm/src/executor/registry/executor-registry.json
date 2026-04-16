@@ -8,7 +8,7 @@
       "executor": "local",
       "transport": "acp",
       "bridge": "Skills/zo-swarm-executors/bridges/claude-code-bridge.sh",
-      "description": "Claude Code CLI in one-shot mode — full codebase context, file editing, terminal access",
+      "description": "Claude Code CLI in one-shot mode \u2014 full codebase context, file editing, terminal access",
       "expertise": [
         "code-generation",
         "code-review",
@@ -84,7 +84,7 @@
           "HERMES_PROJECT_DIR": "Path to hermes-agent project (default: /home/workspace/hermes-agent)",
           "HERMES_VENV": "Path to venv activate script (default: $HERMES_PROJECT_DIR/.venv/bin/activate)",
           "HERMES_TIMEOUT": "Timeout in seconds (default: 300)",
-          "OPENROUTER_API_KEY": "Required — LLM API access for Hermes"
+          "OPENROUTER_API_KEY": "Required \u2014 LLM API access for Hermes"
         }
       },
       "capabilities": {
@@ -108,7 +108,7 @@
       "executor": "local",
       "transport": "acp",
       "bridge": "Skills/zo-swarm-executors/bridges/gemini-bridge.sh",
-      "description": "Google Gemini CLI with persistent daemon — large-context reasoning, multimodal analysis, code generation. Daemon eliminates ~10s Node.js startup overhead per call.",
+      "description": "Google Gemini CLI with persistent daemon \u2014 large-context reasoning, multimodal analysis, code generation. Daemon eliminates ~10s Node.js startup overhead per call.",
       "expertise": [
         "code-generation",
         "code-review",
@@ -153,7 +153,7 @@
       "warmUp": {
         "script": "Skills/zo-swarm-executors/scripts/gemini-warmup.ts",
         "hook": "Skills/zo-swarm-executors/scripts/pre-swarm-hook.sh",
-        "recommended": "Run before swarm execution — starts daemon automatically (~12s → ~2s per call)"
+        "recommended": "Run before swarm execution \u2014 starts daemon automatically (~12s \u2192 ~2s per call)"
       },
       "capabilities": {
         "fileRead": true,
@@ -176,7 +176,7 @@
       "executor": "local",
       "transport": "acp",
       "bridge": "Skills/zo-swarm-executors/bridges/codex-bridge.sh",
-      "description": "OpenAI Codex CLI (Rust) — fastest local executor (~3s per call). Code generation, shell commands, file editing with full sandbox support.",
+      "description": "OpenAI Codex CLI (Rust) \u2014 fastest local executor (~3s per call). Code generation, shell commands, file editing with full sandbox support.",
       "expertise": [
         "code-generation",
         "code-review",
@@ -215,6 +215,39 @@
         "expectedPattern": "codex",
         "description": "Verify Codex CLI is installed"
       }
+    },
+    {
+      "id": "mimir",
+      "name": "Mimir Memory Sage",
+      "executor": "local",
+      "description": "Mimir 2nd Brain memory sage \u2014 queries the memory gate for historical context, synthesis, and institutional knowledge. Used as a DAG node to inject context into downstream tasks.",
+      "expertise": [
+        "memory",
+        "context",
+        "recall",
+        "history",
+        "synthesis",
+        "knowledge",
+        "institutional-memory"
+      ],
+      "best_for": [
+        "Injecting historical context into DAG tasks",
+        "Cross-session project recall",
+        "Institutional knowledge validation",
+        "Eval judge for semantic drift detection"
+      ],
+      "config": {
+        "defaultTimeout": 15,
+        "envVars": {
+          "MIMIR_GATE_URL": "Memory gate daemon URL (default: http://localhost:7820)"
+        }
+      },
+      "healthCheck": {
+        "command": "curl -sf http://localhost:7820/health | grep -q mimir",
+        "expectedPattern": "mimir",
+        "description": "Verify memory gate is running and mimir backend is configured"
+      },
+      "transport": "mimir"
     }
   ],
   "deferredExecutors": [
@@ -222,7 +255,11 @@
       "id": "cursor",
       "status": "deferred",
       "reason": "Cursor CLI is in beta (Jan 2026). Known issues: headless mode hangs, hooks broken. ACP support exists (March 2026) but not production-ready. Re-evaluate mid-2026.",
-      "requirements": ["cursor-agent binary", "CURSOR_API_KEY", "Cursor Pro subscription ($20/mo)"]
+      "requirements": [
+        "cursor-agent binary",
+        "CURSOR_API_KEY",
+        "Cursor Pro subscription ($20/mo)"
+      ]
     }
   ]
 }

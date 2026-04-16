@@ -45,3 +45,7 @@ temp/
 *.db-journal
 seeds/
 results/
+
+# Benchmark datasets and upstream clones (not tracked)
+benchmarks/longmemeval/data/
+benchmarks/longmemeval/eval/
