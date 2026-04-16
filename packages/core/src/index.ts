@@ -8,6 +8,7 @@
 
 export * from './types.js';
 export * from './constants.js';
+export * from './paths.js';
 export * from './config/loader.js';
 export * from './config/schema.js';
 export * from './backup.js';

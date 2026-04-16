@@ -14,8 +14,9 @@
 import { Database } from "bun:sqlite";
 import { appendFileSync } from "fs";
 import { listPools, getAccessiblePersonas } from "./cross-persona.ts";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const LOG_PATH = "/dev/shm/knowledge-promoter.log";
 const CONFIDENCE_FLOOR = 0.8;
 const LOOKBACK_SECONDS = 7 * 24 * 60 * 60; // 7 days

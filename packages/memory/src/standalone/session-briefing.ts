@@ -17,8 +17,9 @@ import { parseArgs } from "util";
 import { loadPersonaContext } from "./vault-persona-loader.ts";
 import { searchCrossPersona, getAccessiblePersonas } from "./cross-persona.ts";
 import { getPersonaDomain, getPersonaDomains } from "./domain-map.ts";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const SYNTHESIS_MODEL = process.env.PKA_MODEL || "qwen2.5:1.5b";
 const DEFAULT_MAX_TOKENS = 500;

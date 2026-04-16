@@ -16,8 +16,9 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const SUMMARIZE_MODEL = process.env.ZO_SUMMARIZE_MODEL || "qwen2.5:7b";
 const EPISODE_WINDOW = 14 * 24 * 3600; // 14 days in seconds

@@ -25,9 +25,10 @@ import {
 } from "./continuation";
 import { extractWikilinks, resolveWikilinkTargets, autoCorrectWikilinks, shouldExcludeFromWrapping, ENTITY_LIKE_PATTERN } from "./wikilink-utils";
 import { extractWikilinks, resolveWikilinkTargets } from "./wikilink-utils";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // --- Configuration ---
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const CAPTURE_MODEL = process.env.ZO_CAPTURE_MODEL || "qwen2.5:7b";
 const CAPTURE_FALLBACK_MODEL = "qwen2.5:3b";

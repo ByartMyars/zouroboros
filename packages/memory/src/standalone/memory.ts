@@ -23,6 +23,7 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import { computeGraphBoost, findGraphNeighbors } from "./graph-boost";
 import { extractWikilinks, resolveWikilinkTargets, autoCorrectWikilinks, shouldExcludeFromWrapping, ENTITY_LIKE_PATTERN } from "./wikilink-utils";
+import { getMemoryDbPath } from "zouroboros-core";
 import {
   createEpisodeRecord,
   detectContinuation,
@@ -35,7 +36,7 @@ import {
 } from "./continuation";
 
 // --- Configuration ---
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const EMBEDDING_MODEL = process.env.ZO_EMBEDDING_MODEL || "nomic-embed-text";
 const HYDE_MODEL = process.env.ZO_HYDE_MODEL || "qwen2.5:1.5b";

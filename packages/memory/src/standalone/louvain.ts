@@ -18,6 +18,7 @@
  */
 
 import { Database } from "bun:sqlite";
+import { getMemoryDbPath } from "zouroboros-core";
 
 export interface Community {
   id: number;
@@ -588,7 +589,7 @@ async function main() {
     }
   }
 
-  const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+  const DB_PATH = getMemoryDbPath();
   const db = new Database(DB_PATH);
   db.exec("PRAGMA journal_mode = WAL");
 

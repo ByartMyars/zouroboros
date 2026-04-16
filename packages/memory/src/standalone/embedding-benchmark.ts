@@ -12,8 +12,9 @@
 
 import { Database } from "bun:sqlite";
 import { existsSync, readFileSync } from "fs";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 
 const MODELS = {

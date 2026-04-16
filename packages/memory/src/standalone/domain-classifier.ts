@@ -7,6 +7,7 @@
 
 import { Database } from "bun:sqlite";
 import { parseArgs } from "util";
+import { getMemoryDbPath } from "zouroboros-core";
 
 export type Domain = "ffb" | "jhf-trading" | "zouroboros" | "personal" | "infrastructure" | "shared";
 
@@ -112,7 +113,7 @@ if (import.meta.main) {
   }
 
   if (values.batch) {
-    const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+    const DB_PATH = getMemoryDbPath();
     const db = new Database(DB_PATH, { readonly: true });
     const rows = db.query("SELECT file_path FROM vault_files").all() as { file_path: string }[];
     db.close();

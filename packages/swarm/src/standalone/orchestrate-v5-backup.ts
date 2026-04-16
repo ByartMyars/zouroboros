@@ -19,6 +19,7 @@ import { join, dirname } from "path";
 import { spawn } from "child_process";
 import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // ============================================================================
 // PATHS & CONFIG
@@ -30,7 +31,7 @@ const SWARM_DIR = join(HOME, ".swarm");
 const LOGS_DIR = join(SWARM_DIR, "logs");
 const RESULTS_DIR = join(SWARM_DIR, "results");
 const HISTORY_DB = join(SWARM_DIR, "executor-history.db");
-const MEMORY_DB = join("/home/workspace/.zo/memory/shared-facts.db");
+const MEMORY_DB = getMemoryDbPath();
 const REGISTRY = join(WORKSPACE, "Skills", "zo-swarm-executors", "registry", "executor-registry.json");
 const LOCK_DIR = "/dev/shm";
 

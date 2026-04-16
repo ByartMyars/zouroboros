@@ -17,11 +17,12 @@ import { readdir, stat, readFile } from "fs/promises";
 import { join, basename, resolve, relative, dirname } from "path";
 import { parseLinks, type LinkReference } from "./vault-link-parser.ts";
 import { classifyDomain } from "./domain-classifier.ts";
+import { getMemoryDbPath, getWorkspaceRoot } from "zouroboros-core";
 
 // ── Config ───────────────────────────────────────────────────────────────
 
-const WORKSPACE = "/home/workspace";
-const DB_PATH = process.env.ZO_MEMORY_DB || join(WORKSPACE, ".zo/memory/shared-facts.db");
+const WORKSPACE = getWorkspaceRoot();
+const DB_PATH = getMemoryDbPath();
 
 const EXCLUDE_DIRS = new Set([
   "Backups",

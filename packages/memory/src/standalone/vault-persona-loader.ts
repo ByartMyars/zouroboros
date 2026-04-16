@@ -14,8 +14,9 @@
  */
 
 import { Database } from "bun:sqlite";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 
 // ---------------------------------------------------------------------------
 // Types

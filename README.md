@@ -245,7 +245,7 @@ This registers 5 agents on your Zo Computer:
 # ~/.zouroboros/config.yaml
 defaults:
   memory:
-    dbPath: ~/.zo/memory/shared-facts.db
+    dbPath: ~/.zouroboros/memory.db
     embeddingModel: nomic-embed-text
   swarm:
     localConcurrency: 8

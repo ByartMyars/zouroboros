@@ -31,6 +31,15 @@ export interface RagConfig {
   enabled: boolean;
 }
 
-export const MEMORY_DB_PATH = "/home/workspace/.zo/memory/shared-facts.db";
+import { getMemoryDbPath } from "zouroboros-core";
+
+/**
+ * Resolved memory database path.
+ *
+ * Honors `ZOUROBOROS_MEMORY_DB` / `ZO_MEMORY_DB` env vars and falls back to
+ * `~/.zouroboros/memory.db`. Exposed as a getter so tests that mutate env vars
+ * at runtime see the updated value.
+ */
+export const MEMORY_DB_PATH = getMemoryDbPath();
 export const OLLAMA_EMBED_URL = "http://localhost:11434/api/embeddings";
 export const EMBEDDING_MODEL = "nomic-embed-text";

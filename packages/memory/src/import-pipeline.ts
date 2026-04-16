@@ -19,9 +19,10 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join, basename, extname } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // --- Config ---
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const EMBEDDING_MODEL = process.env.ZO_EMBEDDING_MODEL || "nomic-embed-text";
 

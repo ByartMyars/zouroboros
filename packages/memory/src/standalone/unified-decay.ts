@@ -41,6 +41,7 @@ import { autoResolveStaleLoops } from "./continuation";
 import { mkdtempSync, writeFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // Decay class time constants (seconds)
 const DECAY_CLASS_TTL: Record<string, number | null> = {
@@ -514,7 +515,7 @@ async function main() {
     process.exit(0);
   }
 
-  const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+  const DB_PATH = getMemoryDbPath();
   const db = new Database(DB_PATH);
   db.exec("PRAGMA journal_mode = WAL");
 

@@ -18,6 +18,7 @@
 
 import { join } from "path";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { getMemoryDbPath, getWorkspaceRoot } from "zouroboros-core";
 
 // ============================================================================
 // CONFIGURATION
@@ -39,9 +40,9 @@ const OUTPUT_DIR = join(
   ".swarm",
   "performance-tests"
 );
-const PERF_WORKSPACE = process.env.SWARM_WORKSPACE || "/home/workspace";
+const PERF_WORKSPACE = process.env.SWARM_WORKSPACE || getWorkspaceRoot();
 const MEMORY_SCRIPT = process.env.SWARM_MEMORY_SCRIPT || join(PERF_WORKSPACE, ".zo", "memory", "scripts", "memory.ts");
-const MEMORY_DB = process.env.ZO_MEMORY_DB || join(PERF_WORKSPACE, ".zo", "memory", "shared-facts.db");
+const MEMORY_DB = getMemoryDbPath();
 
 // Specialist roster — concise prompts for test speed
 const SPECIALISTS = [

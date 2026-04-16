@@ -19,6 +19,7 @@ import { Database } from "bun:sqlite";
 import { execSync } from "child_process";
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // Configuration
 const DEFAULT_CONFIG = {
@@ -480,7 +481,7 @@ async function main() {
     vaultDir: flags.vault || DEFAULT_CONFIG.vaultDir,
   };
 
-  const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+  const DB_PATH = getMemoryDbPath();
 
   switch (command) {
     case "init": {

@@ -15,8 +15,9 @@
 import { Database } from "bun:sqlite";
 import { randomUUID, createHash } from "crypto";
 import { autoCorrectWikilinks } from "./wikilink-utils";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const GATE_MODEL = process.env.ZO_GATE_MODEL || "qwen2.5:1.5b";
 

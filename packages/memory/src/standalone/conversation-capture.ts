@@ -21,6 +21,7 @@ import { Database } from "bun:sqlite";
 import { randomUUID, createHash } from "crypto";
 import { readFileSync, existsSync, statSync, readdirSync } from "fs";
 import { join, extname, basename, relative } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 import {
   createEpisodeRecord,
   ensureContinuationSchema,
@@ -30,7 +31,7 @@ import {
 } from "./continuation";
 
 // --- Configuration ---
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const CAPTURE_MODEL = process.env.ZO_CAPTURE_MODEL || "qwen2.5:7b";
 const CAPTURE_FALLBACK_MODEL = "qwen2.5:3b";

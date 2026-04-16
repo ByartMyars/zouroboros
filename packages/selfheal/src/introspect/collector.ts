@@ -9,10 +9,11 @@
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { getMemoryDbPath, getWorkspaceRoot } from 'zouroboros-core';
 import type { MetricResult } from '../types.js';
 
-const WORKSPACE = process.env.ZO_WORKSPACE || '/home/workspace';
-const MEMORY_DB = join(WORKSPACE, '.zo/memory/shared-facts.db');
+const WORKSPACE = getWorkspaceRoot();
+const MEMORY_DB = getMemoryDbPath();
 
 const EVAL_SCRIPT_CANDIDATES = [
   join(WORKSPACE, 'Skills/zo-memory-system/scripts/eval-continuation.ts'),

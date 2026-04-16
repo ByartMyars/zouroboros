@@ -25,10 +25,11 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // --- Config ---
 const PORT = parseInt(process.env.PORT || "48400");
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const EMBEDDING_MODEL = process.env.ZO_EMBEDDING_MODEL || "nomic-embed-text";
 const HISTORY_PATH = join(process.env.HOME || "/tmp", ".swarm", "executor-history.json");

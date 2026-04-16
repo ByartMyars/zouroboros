@@ -40,8 +40,8 @@ Self-Enhancement Skills (packages/selfheal):
   zouroboros-evolve       Execute prescriptions with regression detection
 
 Core System Skills:
-  zo-swarm-orchestrator   Multi-agent swarm orchestration with DAG execution
-  zo-memory-system        Hybrid SQLite + vector memory engine
+  zouroboros-swarm        Multi-agent swarm orchestration with DAG execution
+  zouroboros-memory       Hybrid SQLite + vector memory engine
 
 Install:
   zouroboros skills install              # Export all to ~/Skills/

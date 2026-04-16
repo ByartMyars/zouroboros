@@ -13,9 +13,10 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { getCheckpointDir, getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
-const CHECKPOINT_DIR = process.env.ZO_CHECKPOINT_DIR || "/home/workspace/.zo/memory/checkpoints";
+const DB_PATH = getMemoryDbPath();
+const CHECKPOINT_DIR = getCheckpointDir();
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 

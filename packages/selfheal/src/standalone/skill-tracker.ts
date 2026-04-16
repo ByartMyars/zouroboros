@@ -14,8 +14,9 @@
 
 import { execSync } from "child_process";
 import { existsSync } from "fs";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const MEMORY_DB = process.env.ZOUROBOROS_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const MEMORY_DB = getMemoryDbPath();
 
 const { values, positionals } = (await import("util")).parseArgs({
   args: Bun.argv.slice(2),

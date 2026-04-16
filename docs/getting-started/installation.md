@@ -66,21 +66,30 @@ zouroboros doctor
 
 ### Environment Variables
 
-Create a `.env` file in your project root:
+Zouroboros honors a small set of environment variables but runs fine with the
+defaults. Create a `.env` file in your project root only if you need to override
+them:
 
 ```bash
-# Required
-ZO_WORKSPACE=/home/workspace
-ZO_MEMORY_DB=/home/workspace/.zo/memory/shared-facts.db
+# Optional — defaults to ~/.zouroboros/memory.db
+ZOUROBOROS_MEMORY_DB=/path/to/your/memory.db
 
-# Optional - for cloud features
+# Optional — defaults to the current working directory
+ZOUROBOROS_WORKSPACE=/path/to/your/project
+
+# Optional — for cloud features
 OPENAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
 ```
 
+Legacy `ZO_MEMORY_DB` and `ZO_WORKSPACE` names are still accepted for
+backwards compatibility.
+
 ### Zo Computer Integration
 
-If you're using Zo Computer, add to your `~/.bashrc` or `~/.zshrc`:
+If you're using Zo Computer and want Zouroboros to share the same memory DB as
+other Zo tooling, point it at `~/.zo/memory/shared-facts.db` by adding to your
+`~/.bashrc` or `~/.zshrc`:
 
 ```bash
 # Zouroboros CLI

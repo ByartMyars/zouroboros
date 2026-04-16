@@ -15,11 +15,12 @@ import { execSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join, basename } from "path";
 import { randomUUID } from "crypto";
+import { getMemoryDbPath, getWorkspaceRoot } from "zouroboros-core";
 
-const WORKSPACE = "/home/workspace";
+const WORKSPACE = getWorkspaceRoot();
 const INTROSPECT = join(WORKSPACE, "Skills/zouroboros-introspect/scripts/introspect.ts");
 const MEMORY_SCRIPTS = join(WORKSPACE, "Skills/zo-memory-system/scripts");
-const MEMORY_DB = join(WORKSPACE, ".zo/memory/shared-facts.db");
+const MEMORY_DB = getMemoryDbPath();
 const DEFAULT_OUTPUT = join(WORKSPACE, "Seeds/zouroboros");
 
 // --- CLI ---

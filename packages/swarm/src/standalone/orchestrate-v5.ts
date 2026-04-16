@@ -51,6 +51,7 @@ import { HierarchicalMemory, SlidingWindowMemory, MemoryItem, MemoryStrategy } f
 
 // v5.1: RAG enrichment — auto-inject relevant SDK patterns from Agentic RAG
 import { enrichTaskWithRAG, shouldEnrichWithRAG } from "./rag-enrichment";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // ============================================================================
 // PATHS & CONFIG
@@ -64,7 +65,7 @@ const RESULTS_DIR = join(SWARM_DIR, "results");
 const HISTORY_DB = join(SWARM_DIR, "executor-history.db");
 const HISTORY_JSON = join(SWARM_DIR, "executor-history.json");
 const CIRCUIT_STATE_FILE = join(SWARM_DIR, "circuit-breaker-state.json");
-const MEMORY_DB = join("/home/workspace/.zo/memory/shared-facts.db");
+const MEMORY_DB = getMemoryDbPath();
 const REGISTRY = join(WORKSPACE, "Skills", "zo-swarm-executors", "registry", "executor-registry.json");
 const PERSONA_REGISTRY = join(WORKSPACE, "Skills", "zo-swarm-orchestrator", "assets", "persona-registry.json");
 const AGENCY_PERSONAS = join(WORKSPACE, "agency-agents-personas.json");

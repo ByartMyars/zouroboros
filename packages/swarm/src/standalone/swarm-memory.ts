@@ -13,6 +13,7 @@
 import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
+import { getMemoryDbPath } from "zouroboros-core";
 
 // ============================================================================
 // TYPES
@@ -519,7 +520,7 @@ Use this context to inform your analysis, but focus on your specific task.
     query: string,
     options: { persona?: string; limit?: number } = {}
   ): Array<{ entity: string; key: string | null; value: string; category: string; decayClass: string }> {
-    const personaDbPath = process.env.ZO_MEMORY_DB || join(process.env.SWARM_WORKSPACE || "/home/workspace", ".zo", "memory", "shared-facts.db");
+    const personaDbPath = getMemoryDbPath();
     if (!existsSync(personaDbPath)) return [];
 
     let personaDb: Database | null = null;

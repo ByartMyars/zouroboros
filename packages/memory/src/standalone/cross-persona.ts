@@ -12,8 +12,9 @@
 
 import { Database } from "bun:sqlite";
 import { DEFAULT_POOLS } from "./domain-map.ts";
+import { getMemoryDbPath } from "zouroboros-core";
 
-const DB_PATH = process.env.ZO_MEMORY_DB || "/home/workspace/.zo/memory/shared-facts.db";
+const DB_PATH = getMemoryDbPath();
 
 function getDb(): Database {
   const db = new Database(DB_PATH);

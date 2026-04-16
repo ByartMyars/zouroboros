@@ -17,10 +17,11 @@
 import { Database } from "bun:sqlite";
 import { resolve, dirname, basename } from "path";
 import { spawnSync } from "child_process";
+import { getMemoryDbPath, getWorkspaceRoot } from "zouroboros-core";
 
 // ── constants ──────────────────────────────────────────────────────
-const DB_PATH = "/home/workspace/.zo/memory/shared-facts.db";
-const WORKSPACE = "/home/workspace";
+const DB_PATH = getMemoryDbPath();
+const WORKSPACE = getWorkspaceRoot();
 const SCRIPTS_DIR = dirname(new URL(import.meta.url).pathname);
 
 // ── arg parsing ────────────────────────────────────────────────────

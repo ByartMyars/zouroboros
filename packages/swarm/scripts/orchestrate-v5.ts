@@ -63,12 +63,13 @@ import { enrichTaskWithRAG, shouldEnrichWithRAG } from "./rag-enrichment";
 
 // v5.2: Dep-graph — file dependency analysis for write-scope conflict detection
 import { buildDepGraph } from "./dep-graph";
+import { getMemoryDbPath, getWorkspaceRoot } from "zouroboros-core";
 
 // ============================================================================
 // PATHS & CONFIG
 // ============================================================================
 
-const WORKSPACE = process.env.SWARM_WORKSPACE || "/home/workspace";
+const WORKSPACE = process.env.SWARM_WORKSPACE || getWorkspaceRoot();
 const HOME = process.env.HOME || "/root";
 const SWARM_DIR = join(HOME, ".swarm");
 const LOGS_DIR = join(SWARM_DIR, "logs");
@@ -76,7 +77,7 @@ const RESULTS_DIR = join(SWARM_DIR, "results");
 const HISTORY_DB = join(SWARM_DIR, "executor-history.db");
 const HISTORY_JSON = join(SWARM_DIR, "executor-history.json");
 const CIRCUIT_STATE_FILE = join(SWARM_DIR, "circuit-breaker-state.json");
-const MEMORY_DB = process.env.ZO_MEMORY_DB || join(WORKSPACE, ".zo", "memory", "shared-facts.db");
+const MEMORY_DB = getMemoryDbPath();
 const REGISTRY = join(WORKSPACE, "Skills", "zo-swarm-executors", "registry", "executor-registry.json");
 const PERSONA_REGISTRY = join(WORKSPACE, "Skills", "zo-swarm-orchestrator", "assets", "persona-registry.json");
 const AGENCY_PERSONAS = join(WORKSPACE, "IDENTITY", "agency-agents-personas.json");
