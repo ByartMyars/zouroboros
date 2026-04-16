@@ -1,19 +1,61 @@
 import { Command } from 'commander';
 import { spawn } from 'child_process';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
+import { createRequire } from 'module';
+import { existsSync } from 'fs';
+
+const nodeRequire = createRequire(import.meta.url);
 
 /**
- * Monorepo-relative path to the memory package's CLI entry point.
- * Resolves regardless of whether this file is run from source (ts) or
- * built output (dist/cli/src/commands/memory.js).
+ * Locate the memory package's CLI entry point.
+ *
+ * Preference order:
+ *   1. `zouroboros-memory/cli` subpath export — works when this CLI is
+ *      installed as a published npm package alongside `zouroboros-memory`.
+ *   2. Monorepo-relative source path — works when running directly from a
+ *      clone of the repo (dev mode, pre-publish).
+ *
+ * Cached on first successful resolution.
  */
-const MEMORY_CLI = resolve(
-  import.meta.dirname || __dirname,
-  '../../../packages/memory/src/cli.ts'
-);
+let cachedMemoryCli: string | undefined;
+function resolveMemoryCli(): string {
+  if (cachedMemoryCli) return cachedMemoryCli;
+  try {
+    cachedMemoryCli = nodeRequire.resolve('zouroboros-memory/cli');
+    return cachedMemoryCli;
+  } catch {
+    // fall through to monorepo fallback
+  }
+  const monorepoPath = resolve(
+    import.meta.dirname || __dirname,
+    '../../../packages/memory/src/cli.ts'
+  );
+  if (existsSync(monorepoPath)) {
+    cachedMemoryCli = monorepoPath;
+    return cachedMemoryCli;
+  }
+  throw new Error(
+    'Unable to locate zouroboros-memory CLI. Install `zouroboros-memory` or run from a monorepo clone with packages/memory present.'
+  );
+}
 
 function runMemory(args: string[]) {
-  spawn('bun', [MEMORY_CLI, ...args], { stdio: 'inherit' });
+  let target: string;
+  try {
+    target = resolveMemoryCli();
+  } catch (err) {
+    console.error((err as Error).message);
+    process.exitCode = 1;
+    return;
+  }
+  const child = spawn('bun', [target, ...args], { stdio: 'inherit' });
+  child.on('error', (err) => {
+    console.error(`Failed to spawn memory CLI: ${err.message}`);
+    process.exitCode = 1;
+  });
+  child.on('exit', (code) => {
+    if (code && code !== 0) process.exitCode = code;
+  });
 }
 
 export const memoryCommand = new Command('memory')
